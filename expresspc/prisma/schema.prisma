@@ -1,0 +1,113 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  email     String   @unique
+  senha     String
+  role      Role
+  createdAt DateTime @default(now())
+
+  // Relações
+  reservas Reserva[]
+  Turma    Turma[]
+}
+
+model Aluno {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  matricula String   @unique
+  fotoPath  String
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  emprestimos Emprestimo[]
+}
+
+model Turma {
+  id          Int    @id @default(autoincrement())
+  codigo      String @unique
+  nome        String
+  professorId Int
+  semestre    Int
+  ano         Int
+
+  professor Usuario   @relation(fields: [professorId], references: [id])
+  reservas  Reserva[]
+}
+
+model Notebook {
+  id         Int      @id @default(autoincrement())
+  patrimonio String   @unique
+  modelo     String
+  status     Status   @default(DISPONIVEL)
+  createdAt  DateTime @default(now())
+
+  emprestimos Emprestimo[]
+}
+
+model Reserva {
+  id           Int           @id @default(autoincrement())
+  professorId  Int
+  turmaId      Int
+  dataAula     DateTime
+  qtdNotebooks Int
+  status       StatusReserva @default(ATIVA)
+  createdAt    DateTime      @default(now())
+
+  professor   Usuario      @relation(fields: [professorId], references: [id])
+  turma       Turma        @relation(fields: [turmaId], references: [id])
+  emprestimos Emprestimo[]
+}
+
+model Emprestimo {
+  id            Int              @id @default(autoincrement())
+  alunoId       Int
+  notebookId    Int
+  reservaId     Int
+  dataRetirada  DateTime         @default(now())
+  dataDevolucao DateTime?
+  status        StatusEmprestimo @default(ATIVO)
+
+  aluno    Aluno    @relation(fields: [alunoId], references: [id])
+  notebook Notebook @relation(fields: [notebookId], references: [id])
+  reserva  Reserva  @relation(fields: [reservaId], references: [id])
+}
+
+enum Role {
+  ADMIN
+  PROFESSOR
+  SUPORTE
+}
+
+enum Status {
+  DISPONIVEL
+  EM_USO
+  MANUTENCAO
+}
+
+enum StatusReserva {
+  ATIVA
+  CANCELADA
+  FINALIZADA
+}
+
+enum StatusEmprestimo {
+  ATIVO
+  DEVOLVIDO
+  ATRASADO
+}
