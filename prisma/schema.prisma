@@ -1,7 +1,7 @@
 generator client {
   provider        = "prisma-client-js"
   output          = "../src/generated/prisma"
-  proviewFeatures = ["driveAdapters"]
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
@@ -9,29 +9,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id            String     @id @default(cuid())
-  name          String      @unique
-  email         String
-  emailVerified Boolean
-  image         String?  // Parte do admin
-  role           String  @default("USER")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  sessions      Session[]
-  accounts      Account[]
- 
-  @@unique([email])
-  @@map("user")
-}
-
+/* ---------------------- AUTENTICAÇÃO ------------------------ */
 
 model Session {
   id        String   @id
   expiresAt DateTime
   token     String
-  createdAt DateTime
-  updatedAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   ipAddress String?
   userAgent String?
   userId    String
@@ -54,8 +39,8 @@ model Account {
   refreshTokenExpiresAt DateTime?
   scope                 String?
   password              String?
-  createdAt             DateTime
-  updatedAt             DateTime
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   @@map("account")
 }
@@ -65,23 +50,34 @@ model Verification {
   identifier String
   value      String
   expiresAt  DateTime
-  createdAt  DateTime?
-  updatedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@map("verification")
 }
 
+/* ---------------------- USUÁRIOS ------------------------ */
 
-model Usuario {
-  id        Int       @id @default(autoincrement())
-  nome      String
-  email     String    @unique
-  senha     String
-  role      Role
-  createdAt DateTime  @default(now())
-  reservas  Reserva[]
-  Turma     Turma[]
+model User {
+  id            String     @id @default(cuid())
+  name          String     @unique
+  email         String
+  emailVerified Boolean
+  image         String?
+  role          Role       @default(PROFESSOR)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  reservas      Reserva[]
+  turmas        Turma[]
+  sessions      Session[]
+  accounts      Account[]
+
+  @@unique([email])
+  @@map("user")
 }
+
+/* ---------------------- ACADÊMICO ------------------------ */
 
 model Aluno {
   id          Int          @id @default(autoincrement())
@@ -97,12 +93,15 @@ model Turma {
   id          Int       @id @default(autoincrement())
   codigo      String    @unique
   nome        String
-  professorId Int
+  professorId String
   semestre    Int
   ano         Int
+
   reservas    Reserva[]
-  professor   Usuario   @relation(fields: [professorId], references: [id])
+  professor   User @relation(fields: [professorId], references: [id])
 }
+
+/* ---------------------- NOTEBOOK ------------------------ */
 
 model Notebook {
   id          Int          @id @default(autoincrement())
@@ -113,18 +112,23 @@ model Notebook {
   emprestimos Emprestimo[]
 }
 
+/* ---------------------- RESERVA ------------------------ */
+
 model Reserva {
   id           Int           @id @default(autoincrement())
-  professorId  Int
+  professorId  String
   turmaId      Int
   dataAula     DateTime
   qtdNotebooks Int
   status       StatusReserva @default(ATIVA)
   createdAt    DateTime      @default(now())
+
   emprestimos  Emprestimo[]
-  professor    Usuario       @relation(fields: [professorId], references: [id])
-  turma        Turma         @relation(fields: [turmaId], references: [id])
+  professor    User   @relation(fields: [professorId], references: [id])
+  turma        Turma  @relation(fields: [turmaId], references: [id])
 }
+
+/* ---------------------- EMPRÉSTIMO ------------------------ */
 
 model Emprestimo {
   id            Int              @id @default(autoincrement())
@@ -134,10 +138,13 @@ model Emprestimo {
   dataRetirada  DateTime         @default(now())
   dataDevolucao DateTime?
   status        StatusEmprestimo @default(ATIVO)
+
   aluno         Aluno            @relation(fields: [alunoId], references: [id])
   notebook      Notebook         @relation(fields: [notebookId], references: [id])
   reserva       Reserva          @relation(fields: [reservaId], references: [id])
 }
+
+/* ---------------------- ENUMS ------------------------ */
 
 enum Role {
   ADMIN

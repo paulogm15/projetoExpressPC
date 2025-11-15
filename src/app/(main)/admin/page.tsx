@@ -70,6 +70,8 @@ export default async function AdminPage() {
               <Button variant="outline">Gerenciar Usuários</Button>
               <Button variant="outline">Gerenciar Notebooks</Button>
               <Button variant="outline">Ver Logs</Button>
+              <Button asChild variant="outline"><Link href="/admin/turmas">Criar Turmas</Link></Button>
+
             </div>
           </CardContent>
         </Card>
