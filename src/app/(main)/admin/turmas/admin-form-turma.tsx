@@ -1,123 +1,191 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+
+import { useToast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
+  SelectTrigger,
   SelectContent,
   SelectItem,
-  SelectTrigger,
-  SelectValue
+  SelectValue,
 } from "@/components/ui/select";
-import { toast } from "sonner";
-import axios from "axios";
 
-const schema = z.object({
-  codigo: z.string().min(3),
-  nome: z.string().min(3),
-  semestre: z.string(),
-  ano: z.string(),
-  professorId: z.string().min(1),
+// ---------------- SCHEMA ----------------
+
+const turmaSchema = z.object({
+  codigo: z.string().min(1, "Código obrigatório"),
+  nome: z.string().min(1, "Nome obrigatório"),
+  semestre: z.number().min(1).max(2),
+  ano: z.number().min(2000).max(2100),
+  materiaIds: z.array(z.number()).min(1, "Selecione ao menos 1 matéria"),
 });
 
-export default function AdminFormTurma() {
-  const [professores, setProfessores] = useState([]);
+type TurmaFormData = z.infer<typeof turmaSchema>;
+
+// ---------------- COMPONENTE ----------------
+
+// materias agora é OPCIONAL
+export default function TurmaForm({ materias = [] }: { materias?: any[] }) {
+  const { toast } = useToast();
 
   const {
     register,
     handleSubmit,
+    reset,
+    watch,
     setValue,
-    formState: { errors },
-  } = useForm({
-    resolver: zodResolver(schema),
+    formState: { errors, isSubmitting },
+  } = useForm<TurmaFormData>({
+    resolver: zodResolver(turmaSchema),
+    defaultValues: {
+      semestre: 1,
+      ano: new Date().getFullYear(),
+      materiaIds: [],
+    },
   });
 
-  // Professores
-  useEffect(() => {
-    async function loadProfessores() {
-      try {
-        const res = await axios.get("/api/admin/professores");
-        setProfessores(res.data);
-      } catch (err) {
-        toast.error("Erro ao carregar professores.");
-      }
-    }
+  const selectedMaterias = watch("materiaIds");
 
-    loadProfessores();
-  }, []);
-
-  // CREATE TURMA - agora apontando para o local correto
-  async function onSubmit(data: any) {
+  // --------------- SUBMIT ---------------
+  async function onSubmit(data: TurmaFormData) {
     try {
-      await axios.post("/admin/turmas/api", data); // <------------- AJUSTADO
-      toast.success("Turma criada com sucesso!");
-    } catch (e) {
-      console.log(e);
-      toast.error("Erro ao criar turma.");
+      const response = await fetch("/api/turma", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) throw new Error("Erro ao salvar turma.");
+
+      toast({
+        title: "Sucesso!",
+        description: "Turma cadastrada corretamente.",
+      });
+
+      reset();
+    } catch (error: any) {
+      toast({
+        title: "Erro ao salvar",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   }
 
+  // --------------- COMPONENTE ---------------
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Criar Nova Turma</CardTitle>
-      </CardHeader>
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="space-y-6 border p-6 rounded-xl shadow-sm bg-white"
+    >
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6">
+        {/* Código */}
+        <div>
+          <Label htmlFor="codigo">Código</Label>
+          <Input id="codigo" {...register("codigo")} />
+          {errors.codigo && (
+            <p className="text-red-500 text-sm">{errors.codigo.message}</p>
+          )}
+        </div>
 
-          <div>
-            <Label>Código</Label>
-            <Input placeholder="ADS001" {...register("codigo")} />
-            {errors.codigo && <p className="text-red-500 text-sm">Código inválido</p>}
-          </div>
+        {/* Nome */}
+        <div>
+          <Label htmlFor="nome">Nome</Label>
+          <Input id="nome" {...register("nome")} />
+          {errors.nome && (
+            <p className="text-red-500 text-sm">{errors.nome.message}</p>
+          )}
+        </div>
 
-          <div>
-            <Label>Nome da Turma</Label>
-            <Input placeholder="Algoritmos e Programação" {...register("nome")} />
-          </div>
+        {/* Semestre */}
+        <div>
+          <Label>Semestre</Label>
+          <Select
+            defaultValue="1"
+            onValueChange={(value) => setValue("semestre", Number(value))}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione" />
+            </SelectTrigger>
 
-          <div>
-            <Label>Semestre</Label>
-            <Input type="number" placeholder="1" {...register("semestre")} />
-          </div>
+            <SelectContent>
+              <SelectItem value="1">1</SelectItem>
+              <SelectItem value="2">2</SelectItem>
+            </SelectContent>
+          </Select>
 
-          <div>
-            <Label>Ano</Label>
-            <Input type="number" placeholder="2025" {...register("ano")} />
-          </div>
+          {errors.semestre && (
+            <p className="text-red-500 text-sm">
+              {errors.semestre.message?.toString()}
+            </p>
+          )}
+        </div>
 
-          <div>
-            <Label>Professor Responsável</Label>
-            <Select onValueChange={(v) => setValue("professorId", v)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o professor" />
-              </SelectTrigger>
-              <SelectContent>
-                {professores.length === 0 ? (
-                  <SelectItem value="none" disabled>
-                    Nenhum professor encontrado
-                  </SelectItem>
-                ) : (
-                  professores.map((p: any) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-          </div>
+        {/* Ano */}
+        <div>
+          <Label htmlFor="ano">Ano</Label>
+          <Input
+            id="ano"
+            type="number"
+            {...register("ano", { valueAsNumber: true })}
+          />
+          {errors.ano && (
+            <p className="text-red-500 text-sm">{errors.ano.message}</p>
+          )}
+        </div>
+      </div>
 
-          <Button type="submit">Criar Turma</Button>
-        </form>
-      </CardContent>
-    </Card>
+      {/* Matérias */}
+      <div>
+        <Label>Matérias</Label>
+
+        {materias.length === 0 && (
+          <p className="text-sm text-muted-foreground mt-1">
+            Nenhuma matéria cadastrada ainda.
+          </p>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+          {materias.map((m: any) => (
+            <label
+              key={m.id}
+              className="flex items-center gap-2 p-2 border rounded-md cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                value={m.id}
+                checked={selectedMaterias.includes(m.id)}
+                onChange={(e) => {
+                  const id = Number(e.target.value);
+                  const current = watch("materiaIds");
+
+                  setValue(
+                    "materiaIds",
+                    current.includes(id)
+                      ? current.filter((x) => x !== id)
+                      : [...current, id]
+                  );
+                }}
+              />
+              {m.nome}
+            </label>
+          ))}
+        </div>
+
+        {errors.materiaIds && (
+          <p className="text-red-500 text-sm">{errors.materiaIds.message}</p>
+        )}
+      </div>
+
+      <Button type="submit" disabled={isSubmitting} className="w-full">
+        {isSubmitting ? "Salvando..." : "Cadastrar Turma"}
+      </Button>
+    </form>
   );
 }

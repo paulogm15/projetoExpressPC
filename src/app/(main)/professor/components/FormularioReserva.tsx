@@ -1,16 +1,15 @@
 // app/(main)/professor/components/FormularioReserva.tsx
 "use client";
 
-import { useFormState, useFormStatus } from "react-dom";
-// Importamos a action e o tipo
-import { criarReserva, type State } from "../actions"; 
-// Importamos o TIPO 'Turma' do seu local gerado
-import type { Turma } from "@/generated/prisma"; 
+import { useFormStatus } from "react-dom";
+import React, { useState, useRef, useEffect } from "react";
+import { criarReserva, type State } from "../actions";
+import type { Turma, Materia } from "@/generated/prisma";
 
-// Componentes UI (assumindo shadcn/ui)
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
 import {
   Select,
   SelectContent,
@@ -18,9 +17,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useRef } from "react";
 
-// Botão que mostra "Carregando..."
+// Botão com estado de carregamento
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
@@ -30,30 +28,41 @@ function SubmitButton() {
   );
 }
 
-// Propriedades: O formulário só precisa saber as turmas
 interface FormularioReservaProps {
-  turmas: Turma[];
+  turmas: (Turma & {
+    materias: Materia[];
+  })[];
 }
 
 export function FormularioReserva({ turmas }: FormularioReservaProps) {
-  
-  // Estado inicial do useFormState
   const initialState: State = { message: null, errors: {} };
-  const [state, dispatch] = useFormState(criarReserva, initialState);
-  
+  const [state, dispatch] = React.useActionState(criarReserva, initialState);
   const formRef = useRef<HTMLFormElement>(null);
 
-  // Limpa o formulário em caso de sucesso
-  if (state.message && !state.errors) {
-    formRef.current?.reset();
-  }
+  const [selectedTurmaId, setSelectedTurmaId] = useState<string>("");
+
+  const selectedTurma = turmas.find(
+    (turma) => turma.id === Number(selectedTurmaId)
+  );
+  const materiasDaTurma = selectedTurma?.materias ?? [];
+
+  useEffect(() => {
+    if (state.message && !state.errors) {
+      formRef.current?.reset();
+      setSelectedTurmaId("");
+    }
+  }, [state]);
 
   return (
     <form ref={formRef} action={dispatch} className="space-y-4">
-      {/* Seleção de Turma */}
+      {/* TURMA */}
       <div>
         <Label htmlFor="turmaId">Turma</Label>
-        <Select name="turmaId">
+        <Select
+          name="turmaId"
+          value={selectedTurmaId}
+          onValueChange={(value) => setSelectedTurmaId(value)}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Selecione sua turma" />
           </SelectTrigger>
@@ -71,50 +80,127 @@ export function FormularioReserva({ turmas }: FormularioReservaProps) {
             )}
           </SelectContent>
         </Select>
+
+        {/* Esta verificação de erro agora funciona
+            porque corrigimos o 'State' em actions.ts */}
         {state.errors?.turmaId && (
-          <p className="mt-1 text-sm text-red-500">{state.errors.turmaId[0]}</p>
+          <p className="text-sm text-red-500 mt-1">
+            {state.errors.turmaId[0]}
+          </p>
         )}
       </div>
 
-      {/* Data da Aula */}
+      {/* MATÉRIA */}
       <div>
-        <Label htmlFor="dataAula">Data da Aula</Label>
-        <Input 
-          id="dataAula" 
-          name="dataAula" 
-          type="date" 
-          defaultValue={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
+        <Label htmlFor="materiaId">Matéria</Label>
+        <Select
+          name="materiaId"
+          disabled={materiasDaTurma.length === 0}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Selecione a matéria" />
+          </SelectTrigger>
+          <SelectContent>
+            {materiasDaTurma.length > 0 ? (
+              materiasDaTurma.map((materia) => (
+                <SelectItem key={materia.id} value={String(materia.id)}>
+                  {materia.nome}
+                </SelectItem>
+              ))
+            ) : (
+              <SelectItem value="0" disabled>
+                {selectedTurmaId
+                  ? "Nenhuma matéria para esta turma"
+                  : "Selecione uma turma primeiro"}
+              </SelectItem>
+            )}
+          </SelectContent>
+        </Select>
+        
+        {/* ----- INÍCIO DA CORREÇÃO ----- */}
+        {/* Removemos a verificação '|| state.errors?.materia' */}
+        {state.errors?.materiaId && (
+          <p className="text-sm text-red-500 mt-1">
+            {state.errors.materiaId[0]}
+          </p>
+        )}
+        {/* ----- FIM DA CORREÇÃO ----- */}
+
+      </div>
+
+      {/* DATA */}
+      <div>
+        <Label htmlFor="dataAula">Data</Label>
+        <Input
+          id="dataAula"
+          name="dataAula"
+          type="date"
+          defaultValue={new Date(Date.now() + 86400000)
+            .toISOString()
+            .split("T")[0]}
         />
         {state.errors?.dataAula && (
-          <p className="mt-1 text-sm text-red-500">{state.errors.dataAula[0]}</p>
+          <p className="text-sm text-red-500 mt-1">
+            {state.errors.dataAula[0]}
+          </p>
         )}
       </div>
 
-      {/* Quantidade de Notebooks */}
+      {/* HORÁRIO */}
       <div>
-        <Label htmlFor="qtdNotebooks">Quantidade de Notebooks</Label>
+        <Label htmlFor="horario">Horário</Label>
+        <Input id="horario" name="horario" type="time" />
+        {state.errors?.horario && (
+          <p className="text-sm text-red-500 mt-1">
+            {state.errors.horario[0]}
+          </p>
+        )}
+      </div>
+
+      {/* TURNO */}
+      <div>
+        <Label htmlFor="turno">Turno</Label>
+        <Select name="turno">
+          <SelectTrigger>
+            <SelectValue placeholder="Selecione o turno" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="MANHA">Manhã</SelectItem>
+            <SelectItem value="TARDE">Tarde</SelectItem>
+            <SelectItem value="NOITE">Noite</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {state.errors?.turno && (
+          <p className="text-sm text-red-500 mt-1">{state.errors.turno[0]}</p>
+        )}
+      </div>
+
+      {/* QUANTIDADE */}
+      <div>
+        <Label htmlFor="qtdNotebooks">Quantidade</Label>
         <Input
           id="qtdNotebooks"
           name="qtdNotebooks"
           type="number"
-          placeholder="Ex: 30"
           min="1"
+          placeholder="Ex: 25"
         />
         {state.errors?.qtdNotebooks && (
-          <p className="mt-1 text-sm text-red-500">
+          <p className="text-sm text-red-500 mt-1">
             {state.errors.qtdNotebooks[0]}
           </p>
         )}
       </div>
 
-      {/* Erro Geral (Ex: falta de estoque) */}
+      {/* ERRO GERAL */}
       {state.errors?.geral && (
-        <p className="mt-1 text-sm text-red-500">{state.errors.geral[0]}</p>
+        <p className="text-sm text-red-500">{state.errors.geral[0]}</p>
       )}
-      
-      {/* Mensagem de Sucesso */}
+
+      {/* SUCESSO */}
       {state.message && !state.errors && (
-         <p className="mt-1 text-sm text-green-600">{state.message}</p>
+        <p className="text-sm text-green-600">{state.message}</p>
       )}
 
       <SubmitButton />

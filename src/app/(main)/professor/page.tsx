@@ -31,7 +31,6 @@ export default async function ProfessorPage() {
     where: { email: user.email },
   });
 
-  // Caso o professor não exista no banco
   if (!professor) {
     console.error(
       `Usuário autenticado (${user.email}) não existe na tabela 'User'.`
@@ -49,20 +48,34 @@ export default async function ProfessorPage() {
   }
 
   // --------------------------
-  // BUSCA DAS TURMAS
+  // BUSCA DAS TURMAS (incluindo matérias) - CORRETO
   // --------------------------
   const turmas = await prisma.turma.findMany({
-    where: { professorId: professor.id }, // agora é string
+    where: {
+      materias: {
+        some: {
+          professorId: professor.id,
+        },
+      },
+    },
     orderBy: { nome: "asc" },
+    include: {
+      materias: true, // garante que cada turma vem com suas matérias
+    },
   });
 
   // --------------------------
-  // BUSCA DAS RESERVAS
+  // BUSCA DAS RESERVAS (incluindo turma e matérias) - CORRETO
   // --------------------------
   const reservas = await prisma.reserva.findMany({
     where: { professorId: professor.id },
     include: {
-      turma: true,
+      turma: {
+        include: {
+          materias: true, // traz as matérias da turma da reserva
+        },
+      },
+      materia: true, // <-- Correção que adicionaste
     },
     orderBy: { dataAula: "desc" },
   });
@@ -91,7 +104,10 @@ export default async function ProfessorPage() {
           {/* Lista de reservas */}
           <div className="rounded-lg border bg-card p-6 text-card-foreground shadow-sm md:col-span-2">
             <h2 className="text-lg font-semibold">Minhas Reservas</h2>
+            
+            {/* ----- CORREÇÃO: Remove o 'as any' ----- */}
             <ListaReservas reservas={reservas} />
+            
           </div>
         </div>
       </div>

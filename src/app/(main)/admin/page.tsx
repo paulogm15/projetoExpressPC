@@ -1,164 +1,238 @@
-import { Badge } from "@/components/ui/badge";
+"use client";
+
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { UserAvatar } from "@/app/components/user-avatar";
-import { User } from "@/lib/auth";
-import { getServerSession } from "@/lib/get-session";
-import { format } from "date-fns";
-import { CalendarDaysIcon, MailIcon, ShieldIcon, UserIcon } from "lucide-react";
-import type { Metadata } from "next";
-import Link from "next/link";
-// Adicionamos 'redirect' para a verificação
-import { redirect, unauthorized } from "next/navigation";
+  Laptop,
+  Users,
+  BookOpen,
+  GraduationCap,
+  UserCheck,
+  LayoutDashboard,
+} from "lucide-react";
 
-export const metadata: Metadata = {
-  // Título da página alterado
-  title: "Painel Admin",
-};
+// Import do formulário de turmas
+import AdminFormTurma from "./turmas/admin-form-turma";
 
-// Função renomeada para AdminPage
-export default async function AdminPage() {
-  const session = await getServerSession();
-  const user = session?.user;
+// Placeholder para futuras telas
+const AdminMaterias = () => (
+  <Card>
+    <CardContent className="p-6">
+      <p className="text-muted-foreground">
+        Gerenciamento de matérias ainda não foi implementado.
+      </p>
+    </CardContent>
+  </Card>
+);
 
-  // 1. Proteção: Garante que o usuário está logado
-  if (!user) {
-    redirect("/sign-in");
-  }
+type AdminView =
+  | "dashboard"
+  | "notebooks"
+  | "emprestimos"
+  | "alunos"
+  | "turmas"
+  | "materias";
 
-  // 2. Proteção: Garante que a role é "ADMIN"
-  // (Lembre-se de verificar se é "ADMIN" ou "admin" no seu banco)
-  if (user.role !== "ADMIN") {
-  	 unauthorized();
-  }
+export default function AdminPage() {
+  const [currentView, setCurrentView] = useState<AdminView>("dashboard");
 
-  // 3. Renderiza a página de admin
-  return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-12">
-      <div className="space-y-6">
-        <div className="space-y-2">
-          {/* Título alterado */}
-          <h1 className="text-2xl font-semibold">Painel do Administrador</h1>
-          <p className="text-muted-foreground">
-            Olá, {user.name}. Gerencie o sistema aqui.
-          </p>
-        </div>
+  const navigationButtons = [
+    {
+      id: "notebooks" as AdminView,
+      label: "Notebooks",
+      icon: Laptop,
+      description: "Gerenciar equipamentos",
+    },
+    {
+      id: "emprestimos" as AdminView,
+      label: "Empréstimos",
+      icon: UserCheck,
+      description: "Controle de empréstimos",
+    },
+    {
+      id: "alunos" as AdminView,
+      label: "Alunos",
+      icon: Users,
+      description: "Gerenciar estudantes",
+    },
+    {
+      id: "turmas" as AdminView,
+      label: "Turmas",
+      icon: GraduationCap,
+      description: "Administrar turmas",
+    },
+    {
+      id: "materias" as AdminView,
+      label: "Matérias",
+      icon: BookOpen,
+      description: "Gerenciar disciplinas",
+    },
+  ];
 
-        {/* O admin também pode precisar verificar o e-mail */}
-        {!user.emailVerified && <EmailVerificationAlert />}
-
-        {/* ▼▼▼ NOVO CARD DE AÇÕES ▼▼▼ */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Gerenciamento</CardTitle>
-            <CardDescription>
-              Ações disponíveis para o administrador do sistema.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Adicione aqui links para as seções de gerenciamento, como:
-            </p>
-            <div className="mt-4 flex flex-wrap gap-4">
-              {/* Você pode adicionar botões de link reais aqui */}
-              <Button variant="outline">Gerenciar Usuários</Button>
-              <Button variant="outline">Gerenciar Notebooks</Button>
-              <Button variant="outline">Ver Logs</Button>
-              <Button asChild variant="outline"><Link href="/admin/turmas">Criar Turmas</Link></Button>
-
+  // =============================
+  // Renderização dinâmica
+  // =============================
+  const renderContent = () => {
+    switch (currentView) {
+      case "turmas":
+        return (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold">Gerenciar Turmas</h2>
+              <Button variant="outline" onClick={() => setCurrentView("dashboard")}>
+                Voltar ao Dashboard
+              </Button>
             </div>
-          </CardContent>
-        </Card>
-        {/* ▲▲▲ FIM DO NOVO CARD ▲▲▲ */}
 
-        {/* O admin também pode querer ver o próprio perfil */}
-        <ProfileInformation user={user} />
-      </div>
-    </main>
-  );
-}
+            <AdminFormTurma />
+          </div>
+        );
 
-//
-// As funções auxiliares (ProfileInformation e EmailVerificationAlert)
-// podem permanecer exatamente iguais, pois são reutilizáveis.
-//
+      case "materias":
+        return (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold">Gerenciar Matérias</h2>
+              <Button variant="outline" onClick={() => setCurrentView("dashboard")}>
+                Voltar ao Dashboard
+              </Button>
+            </div>
 
-interface ProfileInformationProps {
-  user: User;
-}
+            <AdminMaterias />
+          </div>
+        );
 
-function ProfileInformation({ user }: ProfileInformationProps) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <UserIcon className="size-5" />
-          Informações do Perfil
-        </CardTitle>
-        <CardDescription>
-          Detalhes da sua conta de administrador
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
-          <div className="flex flex-col items-center gap-3">
-            <UserAvatar
-              name={user.name}
-              image={user.image}
-              className="size-32 sm:size-24"
-            />
-            {user.role && (
-              <Badge>
-                <ShieldIcon className="size-3" />
-                {user.role}
-              </Badge>
-            )}
-          </div>
+      case "notebooks":
+        return (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold">Gerenciar Notebooks</h2>
+              <Button variant="outline" onClick={() => setCurrentView("dashboard")}>
+                Voltar ao Dashboard
+              </Button>
+            </div>
 
-          <div className="flex-1 space-y-4">
-            <div>
-              <h3 className="text-2xl font-semibold">{user.name}</h3>
-              <p className="text-muted-foreground">{user.email}</p>
-            </div>
+            <Card>
+              <CardContent className="p-6">
+                <p className="text-muted-foreground">
+                  Funcionalidade de gerenciamento de notebooks em desenvolvimento...
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        );
 
-            <div className="space-y-2">
-              <div className="text-muted-foreground flex items-center gap-2 text-sm">
-                <CalendarDaysIcon className="size-4" />
-                Membro desde
-              </div>
-              <p className="font-medium">
-                {format(user.createdAt, "MMMM d, yyyy")}
-              </p>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
+      case "emprestimos":
+        return (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold">Gerenciar Empréstimos</h2>
+              <Button variant="outline" onClick={() => setCurrentView("dashboard")}>
+                Voltar ao Dashboard
+              </Button>
+            </div>
 
-function EmailVerificationAlert() {
-  return (
-    <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800/50 dark:bg-yellow-950/30">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <MailIcon className="size-5 text-yellow-600 dark:text-yellow-400" />
-          <span className="text-yellow-800 dark:text-yellow-200">
-            Verifique seu endereço de e-mail para acessar todos os recursos.
-          </span>
-        </div>
+            <Card>
+              <CardContent className="p-6">
+                <p className="text-muted-foreground">
+                  Funcionalidade de empréstimos em desenvolvimento...
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        );
 
-        {/* ▼▼▼ CORREÇÃO APLICADA AQUI ▼▼▼ */}
-        {/* O <Link> deve vir imediatamente após a tag de abertura do <Button> */}
-        <Button size="sm" asChild><Link href="/verify-email">Verificar e-mail</Link></Button>
-        {/* ▲▲▲ FIM DA CORREÇÃO ▲▲▲ */}
-      </div>
-    </div>
-  );
+      case "alunos":
+        return (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold">Gerenciar Alunos</h2>
+              <Button variant="outline" onClick={() => setCurrentView("dashboard")}>
+                Voltar ao Dashboard
+              </Button>
+            </div>
+
+            <Card>
+              <CardContent className="p-6">
+                <p className="text-muted-foreground">
+                  Funcionalidade de alunos em desenvolvimento...
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      default:
+        return (
+          <div className="text-center">
+            <h2 className="text-2xl font-bold">Dashboard Administrativo</h2>
+            <p className="text-muted-foreground mt-2">
+              Selecione uma das opções abaixo para gerenciar o sistema
+            </p>
+          </div>
+        );
+    }
+  };
+
+  // =============================
+  // Layout principal
+  // =============================
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b bg-card">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <LayoutDashboard className="h-6 w-6" />
+              <h1 className="text-xl font-semibold">Painel Administrativo</h1>
+            </div>
+
+            <Button
+              variant={currentView === "dashboard" ? "default" : "outline"}
+              onClick={() => setCurrentView("dashboard")}
+            >
+              Dashboard
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {/* Conteúdo */}
+      <main className="container mx-auto px-4 py-8">
+        {/* Cards somente no dashboard */}
+        {currentView === "dashboard" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            {navigationButtons.map((btn) => (
+              <Card
+                key={btn.id}
+                className="cursor-pointer transition-all hover:bg-accent hover:shadow-md"
+                onClick={() => setCurrentView(btn.id)}
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 bg-primary/10 rounded-lg">
+                      <btn.icon className="h-6 w-6 text-primary" />
+                    </div>
+
+                    <div>
+                      <h3 className="font-semibold">{btn.label}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {btn.description}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* ÁREA DINÂMICA */}
+        {renderContent()}
+      </main>
+    </div>
+  );
 }
