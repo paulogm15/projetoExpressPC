@@ -10,10 +10,21 @@ export const auth = betterAuth({
     provider: "postgresql",
   }),
 
+  
+  socialProviders: {
+    microsoft: {
+      clientId: process.env.MICROSOFT_CLIENT_ID as string,
+      clientSecret: process.env.MICROSOFT_CLIENT_SECRET as string,
+      tenantId: "common",
+      authority: "https://login.microsoftonline.com",
+      prompt: "select_account",
+    },
+  },
+
+  
   emailAndPassword: {
     enabled: true,
-    // requireEmailVerification: true quer dizer que o usuário só pode fazer login depois de confirmar o e-mail
-    requireEmailVerification: false, 
+    requireEmailVerification: false,
 
     async sendResetPassword({ user, url }) {
       await sendEmail({
@@ -28,6 +39,7 @@ export const auth = betterAuth({
     },
   },
 
+  
   emailVerification: {
     sendOnSignIn: true,
     autoSignInAfterVerification: true,
@@ -45,6 +57,7 @@ export const auth = betterAuth({
     },
   },
 
+  
   user: {
     additionalFields: {
       role: {
@@ -54,6 +67,7 @@ export const auth = betterAuth({
     },
   },
 
+  
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
       if (

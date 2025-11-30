@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { SignInForm } from "./sign-in-form";
-
+import { MicrosoftSignInButton } from "@/components/ui/microsoft-signin-button";
 export const metadata: Metadata = {
   title: "Sign in",
 };

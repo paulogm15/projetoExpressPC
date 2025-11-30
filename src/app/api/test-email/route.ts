@@ -2,8 +2,8 @@ import { sendEmail } from "@/lib/email";
 
 export async function GET() {
   await sendEmail({
-    to: "seuemail@gmail.com",
-    subject: "Teste Resend Dev Mode",
+    to: "",
+    subject: "",
     html: "<h1>Funcionou 🎉</h1>",
   });
 

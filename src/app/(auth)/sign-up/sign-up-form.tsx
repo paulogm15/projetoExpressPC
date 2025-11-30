@@ -32,8 +32,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
-
-// ✅ SCHEMA DE VALIDAÇÃO
+// 📌 Schema Unificado
 const signUpSchema = z
   .object({
     name: z.string().min(1, { message: "Nome é obrigatório" }),
@@ -53,8 +52,7 @@ const signUpSchema = z
 
 type SignUpValues = z.infer<typeof signUpSchema>;
 
-
-// ✅ COMPONENTE DE CADASTRO
+// 📌 Formulário Final Mesclado
 export function SignUpForm() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -64,7 +62,7 @@ export function SignUpForm() {
     defaultValues: {
       name: "",
       email: "",
-      role: "PROFESSOR", // valor padrão
+      role: "PROFESSOR",
       password: "",
       passwordConfirmation: "",
     },
@@ -77,7 +75,7 @@ export function SignUpForm() {
       email,
       password,
       name,
-      role, // inclui o tipo de conta
+      role,
       callbackURL: "/email-verified",
     });
 
@@ -103,7 +101,7 @@ export function SignUpForm() {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            
+
             {/* Nome */}
             <FormField
               control={form.control}
@@ -127,11 +125,7 @@ export function SignUpForm() {
                 <FormItem>
                   <FormLabel>E-mail</FormLabel>
                   <FormControl>
-                    <Input
-                      type="email"
-                      placeholder="seu@email.com"
-                      {...field}
-                    />
+                    <Input type="email" placeholder="seu@email.com" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -157,13 +151,12 @@ export function SignUpForm() {
                         </FormControl>
                         <FormLabel className="font-normal">Admin</FormLabel>
                       </FormItem>
+
                       <FormItem className="flex items-center space-x-2 space-y-0">
                         <FormControl>
                           <RadioGroupItem value="PROFESSOR" />
                         </FormControl>
-                        <FormLabel className="font-normal">
-                          Professor
-                        </FormLabel>
+                        <FormLabel className="font-normal">Professor</FormLabel>
                       </FormItem>
                     </RadioGroup>
                   </FormControl>
@@ -220,6 +213,7 @@ export function SignUpForm() {
             <LoadingButton type="submit" className="w-full" loading={loading}>
               Criar conta
             </LoadingButton>
+
           </form>
         </Form>
       </CardContent>
