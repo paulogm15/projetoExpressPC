@@ -1,0 +1,83 @@
+# ===============================
+# CORE WEB / API
+# ===============================
+fastapi==0.121.2
+uvicorn==0.38.0
+python-multipart==0.0.20
+
+# ===============================
+# VISÃO COMPUTACIONAL
+# ===============================
+opencv-python==4.12.0.88
+numpy==2.2.6
+Pillow==11.3.0
+
+# ===============================
+# DEPENDÊNCIAS COM WHEEL LOCAL
+# (necessário para Python 3.13 no Windows)
+# ===============================
+
+# dlib compilado especificamente para Python 3.13 (Windows 64 bits)
+./wheels/dlib-20.0.0-cp313-cp313-win_amd64.whl
+
+# Modelos do face_recognition (arquivos treinados)
+./wheels/face_recognition_models-0.3.0-py2.py3-none-any.whl
+
+# Wrapper de reconhecimento facial (depende de dlib)
+face-recognition==1.3.0
+
+
+/*
+Como instalar corretamente (comentado)
+📍 Passo 1 — vá para a raiz do projeto
+cd caminho/para/o/projeto
+
+📍 Passo 2 — (opcional, mas recomendado) criar venv
+python -m venv .venv
+
+
+Ativar:
+
+.venv\Scripts\activate
+
+
+Se aparecer (.venv) no prompt, está tudo certo.
+
+📍 Passo 3 — instalar dependências
+pip install --upgrade pip
+pip install -r requirements.txt
+
+
+✔ O pip vai:
+
+ler os comentários
+
+instalar libs do PyPI
+
+instalar os .whl locais
+
+não tentar compilar nada
+
+5️⃣ Como inicializar o projeto
+▶️ Interface gráfica
+python -m gui.app_gui
+
+▶️ (Se quiser) API FastAPI
+uvicorn app.main:app --reload
+
+
+Se o uvicorn não for reconhecido:
+
+python -m uvicorn app.main:app --reload
+*/
+
+/*
+⚠️ Se o PowerShell bloquear o script
+
+Execute uma vez como administrador:
+
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+
+Clássico. Seguro. Tradicional.
+*/
