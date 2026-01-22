@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import AdminFormTurma from "./turmas/admin-form-turma";
 import {
   Laptop,
   Users,
@@ -13,75 +12,115 @@ import {
   LayoutDashboard,
 } from "lucide-react";
 
+import AlunosView from "./alunos/alunos-view";
+import AdminFormTurma from "./turmas/admin-form-turma";
+
+type AdminView =
+  | "dashboard"
+  | "notebooks"
+  | "emprestimos"
+  | "alunos"
+  | "turmas"
+  | "materias";
+
 export function AdminClient() {
-  const [currentView, setCurrentView] = useState("dashboard");
+  const [currentView, setCurrentView] = useState<AdminView>("dashboard");
 
-  const navigationButtons = [
-    {
-      id: "notebooks",
-      label: "Notebooks",
-      icon: Laptop,
-      description: "Gerenciar equipamentos",
-    },
-    {
-      id: "emprestimos",
-      label: "Empréstimos",
-      icon: UserCheck,
-      description: "Controle de empréstimos",
-    },
-    {
-      id: "alunos",
-      label: "Alunos",
-      icon: Users,
-      description: "Gerenciar estudantes",
-    },
-    {
-      id: "turmas",
-      label: "Turmas",
-      icon: GraduationCap,
-      description: "Administrar turmas",
-    },
-    {
-      id: "materias",
-      label: "Matérias",
-      icon: BookOpen,
-      description: "Gerenciar disciplinas",
-    },
-  ];
+    const renderContent = () => {
+      switch (currentView) {
+        case "alunos":
+          return <AlunosView onBack={() => setCurrentView("dashboard")} />;
 
-  const renderContent = () => {
-    switch (currentView) {
-      case "turmas":
-        return (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">Gerenciar Turmas</h2>
-              <Button variant="outline" onClick={() => setCurrentView("dashboard")}>
-                Voltar ao Dashboard
-              </Button>
+        case "turmas":
+          return <AdminFormTurma />;
+
+        case "materias":
+          return <h2 className="text-xl font-bold">Gestão de Matérias</h2>;
+
+        case "emprestimos":
+          return <h2 className="text-xl font-bold">Gestão de Empréstimos</h2>;
+
+        case "notebooks":
+          return <h2 className="text-xl font-bold">Gestão de Notebooks</h2>;
+
+        default:
+          return (
+            <div className="text-center">
+              <h2 className="text-2xl font-bold">Dashboard Administrativo</h2>
+              <p className="text-muted-foreground mt-2">
+                Selecione uma opção para gerenciar o sistema
+              </p>
             </div>
-            <AdminFormTurma />
-          </div>
-        );
-      default:
-        return <p>Dashboard</p>;
-    }
-  };
-
+          );
+      }
+    };
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <LayoutDashboard className="h-6 w-6" />
-              <h1 className="text-xl font-semibold">Painel Administrativo</h1>
-            </div>
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <LayoutDashboard className="h-6 w-6" />
+            <h1 className="text-xl font-semibold">Painel Administrativo</h1>
           </div>
+
+          {currentView !== "dashboard" && (
+            <Button variant="outline" onClick={() => setCurrentView("dashboard")}>
+              Voltar
+            </Button>
+          )}
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">{renderContent()}</main>
+      <main className="container mx-auto px-4 py-8">
+            {currentView === "dashboard" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                <DashboardCard
+                  icon={Users}
+                  label="Alunos"
+                  onClick={() => setCurrentView("alunos")}
+                />
+
+                <DashboardCard
+                  icon={GraduationCap}
+                  label="Turmas"
+                  onClick={() => setCurrentView("turmas")}
+                />
+
+                <DashboardCard
+                  icon={BookOpen}
+                  label="Matérias"
+                  onClick={() => setCurrentView("materias")}
+                />
+
+                <DashboardCard
+                  icon={UserCheck}
+                  label="Empréstimos"
+                  onClick={() => setCurrentView("emprestimos")}
+                />
+
+                <DashboardCard
+                  icon={Laptop}
+                  label="Notebooks"
+                  onClick={() => setCurrentView("notebooks")}
+                />
+              </div>
+            )}
+        {renderContent()}
+      </main>
     </div>
+  );
+}
+
+function DashboardCard({ icon: Icon, label, onClick }: any) {
+  return (
+    <Card
+      className="cursor-pointer hover:bg-accent"
+      onClick={onClick}
+    >
+      <CardContent className="p-6 flex items-center space-x-4">
+        <Icon className="h-6 w-6" />
+        <span className="font-semibold">{label}</span>
+      </CardContent>
+    </Card>
   );
 }

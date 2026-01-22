@@ -85,10 +85,14 @@ model Aluno {
   id          Int          @id @default(autoincrement())
   nome        String
   matricula   String       @unique
-  fotoPath    String
+  foto        Bytes
+  embedding   Float[]
   ativo       Boolean      @default(true)
   createdAt   DateTime     @default(now())
+
   emprestimos Emprestimo[]
+
+  @@index([ativo])
 }
 
 model Turma {
