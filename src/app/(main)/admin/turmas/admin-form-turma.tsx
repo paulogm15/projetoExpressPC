@@ -1,190 +1,148 @@
 "use client";
 
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-
-import { useToast } from "@/components/ui/toast";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectItem,
-  SelectValue,
-} from "@/components/ui/select";
 
-// ---------------- SCHEMA ----------------
+type Materia = {
+  id: number;
+  nome: string;
+};
 
-const turmaSchema = z.object({
-  codigo: z.string().min(1, "Código obrigatório"),
-  nome: z.string().min(1, "Nome obrigatório"),
-  semestre: z.number().min(1).max(2),
-  ano: z.number().min(2000).max(2100),
-  materiaIds: z.array(z.number()).min(1, "Selecione ao menos 1 matéria"),
-});
+type TurmaFormProps = {
+  materias?: Materia[];
+};
 
-type TurmaFormData = z.infer<typeof turmaSchema>;
+export default function AdminFormTurma({ materias = [] }: TurmaFormProps) {
+  const [codigo, setCodigo] = useState("");
+  const [nome, setNome] = useState("");
+  const [semestre, setSemestre] = useState(1);
+  const [ano, setAno] = useState(new Date().getFullYear());
+  const [materiaIds, setMateriaIds] = useState<number[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-// ---------------- COMPONENTE ----------------
+  function toggleMateria(id: number) {
+    setMateriaIds((current) =>
+      current.includes(id)
+        ? current.filter((m) => m !== id)
+        : [...current, id]
+    );
+  }
 
-// materias agora é OPCIONAL
-export default function TurmaForm({ materias = [] }: { materias?: any[] }) {
-  const { toast } = useToast();
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    setLoading(true);
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    watch,
-    setValue,
-    formState: { errors, isSubmitting },
-  } = useForm<TurmaFormData>({
-    resolver: zodResolver(turmaSchema),
-    defaultValues: {
-      semestre: 1,
-      ano: new Date().getFullYear(),
-      materiaIds: [],
-    },
-  });
-
-  const selectedMaterias = watch("materiaIds");
-
-  // --------------- SUBMIT ---------------
-  async function onSubmit(data: TurmaFormData) {
     try {
-      const response = await fetch("/api/turma", {
+      const response = await fetch("/admin/turmas/api", {
         method: "POST",
-        body: JSON.stringify(data),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          codigo,
+          nome,
+          semestre,
+          ano,
+          materiaIds,
+        }),
       });
 
-      if (!response.ok) throw new Error("Erro ao salvar turma.");
+      const data = await response.json();
 
-      toast({
-        title: "Sucesso!",
-        description: "Turma cadastrada corretamente.",
-      });
+      if (!response.ok) {
+        throw new Error(data.error || "Erro ao criar turma");
+      }
 
-      reset();
-    } catch (error: any) {
-      toast({
-        title: "Erro ao salvar",
-        description: error.message,
-        variant: "destructive",
-      });
+      setSuccess("Turma criada com sucesso.");
+      setCodigo("");
+      setNome("");
+      setSemestre(1);
+      setAno(new Date().getFullYear());
+      setMateriaIds([]);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   }
 
-  // --------------- COMPONENTE ---------------
   return (
     <form
-      onSubmit={handleSubmit(onSubmit)}
-      className="space-y-6 border p-6 rounded-xl shadow-sm bg-white"
+      onSubmit={handleSubmit}
+      className="space-y-6 border rounded-xl p-6 bg-white shadow-sm"
     >
+      <h2 className="text-xl font-semibold">Cadastro de Turma</h2>
+
+      {error && <p className="text-sm text-red-600">{error}</p>}
+      {success && <p className="text-sm text-green-600">{success}</p>}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-        {/* Código */}
         <div>
-          <Label htmlFor="codigo">Código</Label>
-          <Input id="codigo" {...register("codigo")} />
-          {errors.codigo && (
-            <p className="text-red-500 text-sm">{errors.codigo.message}</p>
-          )}
+          <Label>Código</Label>
+          <Input value={codigo} onChange={(e) => setCodigo(e.target.value)} />
         </div>
 
-        {/* Nome */}
         <div>
-          <Label htmlFor="nome">Nome</Label>
-          <Input id="nome" {...register("nome")} />
-          {errors.nome && (
-            <p className="text-red-500 text-sm">{errors.nome.message}</p>
-          )}
+          <Label>Nome</Label>
+          <Input value={nome} onChange={(e) => setNome(e.target.value)} />
         </div>
 
-        {/* Semestre */}
         <div>
           <Label>Semestre</Label>
-          <Select
-            defaultValue="1"
-            onValueChange={(value) => setValue("semestre", Number(value))}
+          <select
+            value={semestre}
+            onChange={(e) => setSemestre(Number(e.target.value))}
+            className="w-full border rounded-md px-3 py-2"
           >
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione" />
-            </SelectTrigger>
-
-            <SelectContent>
-              <SelectItem value="1">1</SelectItem>
-              <SelectItem value="2">2</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {errors.semestre && (
-            <p className="text-red-500 text-sm">
-              {errors.semestre.message?.toString()}
-            </p>
-          )}
+            <option value={1}>1</option>
+            <option value={2}>2</option>
+          </select>
         </div>
 
-        {/* Ano */}
         <div>
-          <Label htmlFor="ano">Ano</Label>
+          <Label>Ano</Label>
           <Input
-            id="ano"
             type="number"
-            {...register("ano", { valueAsNumber: true })}
+            value={ano}
+            onChange={(e) => setAno(Number(e.target.value))}
           />
-          {errors.ano && (
-            <p className="text-red-500 text-sm">{errors.ano.message}</p>
-          )}
         </div>
       </div>
 
-      {/* Matérias */}
       <div>
         <Label>Matérias</Label>
 
         {materias.length === 0 && (
           <p className="text-sm text-muted-foreground mt-1">
-            Nenhuma matéria cadastrada ainda.
+            Nenhuma matéria cadastrada.
           </p>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
-          {materias.map((m: any) => (
+          {materias.map((m) => (
             <label
               key={m.id}
-              className="flex items-center gap-2 p-2 border rounded-md cursor-pointer"
+              className="flex items-center gap-2 border rounded-md p-2 cursor-pointer"
             >
               <input
                 type="checkbox"
-                value={m.id}
-                checked={selectedMaterias.includes(m.id)}
-                onChange={(e) => {
-                  const id = Number(e.target.value);
-                  const current = watch("materiaIds");
-
-                  setValue(
-                    "materiaIds",
-                    current.includes(id)
-                      ? current.filter((x) => x !== id)
-                      : [...current, id]
-                  );
-                }}
+                checked={materiaIds.includes(m.id)}
+                onChange={() => toggleMateria(m.id)}
               />
               {m.nome}
             </label>
           ))}
         </div>
-
-        {errors.materiaIds && (
-          <p className="text-red-500 text-sm">{errors.materiaIds.message}</p>
-        )}
       </div>
 
-      <Button type="submit" disabled={isSubmitting} className="w-full">
-        {isSubmitting ? "Salvando..." : "Cadastrar Turma"}
+      <Button type="submit" disabled={loading} className="w-full">
+        {loading ? "Salvando..." : "Cadastrar Turma"}
       </Button>
     </form>
   );

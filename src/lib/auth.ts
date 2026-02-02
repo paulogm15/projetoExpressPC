@@ -5,6 +5,7 @@ import { sendEmail } from "./email";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { passwordSchema } from "./validation";
 
+
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",

@@ -1,63 +1,72 @@
 // app/admin/turmas/api/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { codigo, nome, semestre, ano, materiaIds } = body;
+    const { codigo, nome, semestre, ano, materiaIds } = await request.json();
 
-    console.log('Dados recebidos:', body);
-
-    // Validação
+    // ---------------- VALIDAÇÃO BÁSICA ----------------
     if (!codigo || !nome || !semestre || !ano) {
       return NextResponse.json(
-        { error: 'Todos os campos obrigatórios devem ser preenchidos' },
+        { error: "Todos os campos obrigatórios devem ser preenchidos" },
         { status: 400 }
       );
     }
 
-    if (!materiaIds || !Array.isArray(materiaIds) || materiaIds.length === 0) {
-      return NextResponse.json(
-        { error: 'Selecione pelo menos uma matéria' },
-        { status: 400 }
-      );
-    }
-
-    // Verifica se código já existe
+    // ---------------- DUPLICIDADE ----------------
     const turmaExistente = await prisma.turma.findUnique({
       where: { codigo },
     });
 
     if (turmaExistente) {
       return NextResponse.json(
-        { error: 'Já existe uma turma com este código' },
+        { error: "Já existe uma turma com este código" },
         { status: 400 }
       );
     }
 
-    // Cria a turma
+    // ---------------- CRIA TURMA ----------------
     const turma = await prisma.turma.create({
       data: {
         codigo,
         nome,
         semestre: Number(semestre),
         ano: Number(ano),
-        materias: {
-          connect: materiaIds.map((id: number) => ({ id })),
-        },
+
+        // relação N:N opcional
+        materias:
+          Array.isArray(materiaIds) && materiaIds.length > 0
+            ? {
+                create: materiaIds.map((materiaId: number) => ({
+                  materia: {
+                    connect: { id: materiaId },
+                  },
+                })),
+              }
+            : undefined,
       },
       include: {
-        materias: true,
+        materias: {
+          include: {
+            materia: true,
+          },
+        },
       },
     });
 
-    return NextResponse.json(turma, { status: 201 });
+    // ---------------- NORMALIZA RESPOSTA ----------------
+    const resposta = {
+      ...turma,
+      materias: turma.materias.map((tm) => tm.materia),
+    };
 
-  } catch (error: any) {
-    console.error('Erro ao criar turma:', error);
+    return NextResponse.json(resposta, { status: 201 });
+
+  } catch (error) {
+    console.error("Erro ao criar turma:", error);
     return NextResponse.json(
-      { error: 'Erro interno do servidor' },
+      { error: "Erro interno do servidor" },
       { status: 500 }
     );
   }

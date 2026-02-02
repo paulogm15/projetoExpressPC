@@ -102,25 +102,35 @@ model Turma {
   semestre  Int
   ano       Int
 
-  materias  Materia[] @relation("TurmasMaterias")
-
+  materias  TurmaMateria[]   // ← vínculo indireto
   reservas  Reserva[]
 }
 
 
-model Materia {
-  id        Int      @id @default(autoincrement())
-  nome      String
-  codigo    String   @unique
+model TurmaMateria {
+  turmaId   Int
+  materiaId Int
 
-  professorId String
-  professor   User @relation("ProfessorMaterias", fields: [professorId], references: [id])
-  turmaId Int
-  turma   Turma @relation("TurmasMaterias", fields: [turmaId], references: [id])
-  reservas Reserva[]
+  turma     Turma   @relation(fields: [turmaId], references: [id])
+  materia   Materia @relation(fields: [materiaId], references: [id])
 
-  createdAt DateTime @default(now())
+  @@id([turmaId, materiaId])
 }
+
+model Materia {
+  id           Int      @id @default(autoincrement())
+  nome         String
+  codigo       String   @unique
+
+  professorId  String
+  professor    User     @relation("ProfessorMaterias", fields: [professorId], references: [id])
+
+  turmas       TurmaMateria[]   // ← vínculo indireto
+  reservas     Reserva[]
+
+  createdAt    DateTime @default(now())
+}
+
 
 
 /* ---------------------- NOTEBOOK ------------------------ */
