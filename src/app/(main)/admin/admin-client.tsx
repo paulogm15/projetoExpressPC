@@ -15,6 +15,7 @@ import {
 import AlunosView from "./alunos/alunos-view";
 import AdminFormTurma from "./turmas/admin-form-turma";
 import AdminMaterias from "./materias/admin-materias";
+import AdminNotebooks from "./notebooks/admin-notebooks";
 
 type AdminView =
   | "dashboard"
@@ -42,7 +43,7 @@ export function AdminClient() {
           return <h2 className="text-xl font-bold">Gestão de Empréstimos</h2>;
 
         case "notebooks":
-          return <h2 className="text-xl font-bold">Gestão de Notebooks</h2>;
+          return <AdminNotebooks />;
 
         default:
           return (
