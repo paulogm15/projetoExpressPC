@@ -1,60 +1,28 @@
-// app/(main)/admin/components/materias/admin-materias.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
 import { toast } from "sonner";
-import AdminFormMateria from "./admin-form-materia";
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Plus, MoreHorizontal, Edit, Trash2, Search } from "lucide-react";
 
-import {
-  Plus,
-  MoreHorizontal,
-  Edit,
-  Trash2,
-  Search,
-  BookOpen,
-} from "lucide-react";
-
-/* =========================
-   Schema
-========================= */
 const materiaSchema = z.object({
   nome: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
   codigo: z.string().min(2, "Código deve ter pelo menos 2 caracteres"),
+  professorId: z.string().min(1, "Selecione um professor"),
+  turmaIds: z.array(z.number()), 
 });
 
 type MateriaFormData = z.infer<typeof materiaSchema>;
@@ -63,12 +31,16 @@ type Materia = {
   id: number;
   nome: string;
   codigo: string;
+  professorId: string;
+  professor?: { name: string };
   createdAt: string;
-  turmas?: any[];
+  turmas?: { turma: { id: number; nome: string; codigo: string } }[];
 };
 
 export default function AdminMaterias() {
   const [materias, setMaterias] = useState<Materia[]>([]);
+  const [turmasDisponiveis, setTurmasDisponiveis] = useState<any[]>([]);
+  const [professores, setProfessores] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Materia | null>(null);
@@ -79,44 +51,66 @@ export default function AdminMaterias() {
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<MateriaFormData>({
     resolver: zodResolver(materiaSchema),
+    defaultValues: {
+      nome: "",
+      codigo: "",
+      professorId: "",
+      turmaIds: [],
+    },
   });
 
-  async function loadMaterias() {
+  const selectedTurmaIds = watch("turmaIds");
+
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get("/admin/materias");
-      setMaterias(data);
-    } catch {
-      toast.error("Erro ao carregar matérias");
+      const [resMaterias, resTurmas, resProfessores] = await Promise.all([
+        axios.get("/admin/materias/api").catch(err => {
+          console.error("Erro na rota MATERIAS:", err.config.url);
+          return { data: [] };
+        }),
+        axios.get("/admin/turmas/api").catch(err => {
+          console.error("Erro na rota TURMAS:", err.config.url);
+          return { data: [] };
+        }),
+        axios.get("/api/users?role=PROFESSOR").catch(err => {
+          console.error("Erro na rota PROFESSORES:", err.config.url);
+          return { data: [] };
+        }),
+      ]);
+      
+      setMaterias(Array.isArray(resMaterias.data) ? resMaterias.data : []);
+      setTurmasDisponiveis(Array.isArray(resTurmas.data) ? resTurmas.data : []);
+      setProfessores(Array.isArray(resProfessores.data) ? resProfessores.data : []);
+
+    } catch (error) {
+      console.error("Erro fatal no loadData:", error);
+      toast.error("Erro ao sincronizar dados");
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
-    loadMaterias();
-  }, []);
+    loadData();
+  }, [loadData]);
 
   async function onSubmit(data: MateriaFormData) {
     try {
       if (editing) {
-        await axios.put("/admin/materias/api", {
-          id: editing.id,
-          ...data,
-        });
+        await axios.put("/admin/materias/api", { id: editing.id, ...data });
         toast.success("Matéria atualizada");
       } else {
         await axios.post("/admin/materias/api", data);
         toast.success("Matéria criada");
       }
-
       setDialogOpen(false);
-      setEditing(null);
       reset();
-      loadMaterias();
+      loadData();
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Erro ao salvar");
     }
@@ -124,72 +118,57 @@ export default function AdminMaterias() {
 
   async function handleDelete(id: number) {
     if (!confirm("Deseja realmente excluir esta matéria?")) return;
-
     try {
-      await axios.delete("/admin/materias/api", {
-        data: { id },
-      });
+      await axios.delete("/admin/materias/api", { data: { id } });
       toast.success("Matéria excluída");
-      loadMaterias();
+      loadData();
     } catch (err: any) {
-      toast.error(err.response?.data?.error || "Erro ao excluir");
+      toast.error("Erro ao excluir matéria");
     }
   }
 
-  function handleEdit(materia: Materia) {
-    setEditing(materia);
-    setValue("nome", materia.nome);
-    setValue("codigo", materia.codigo);
-    setDialogOpen(true);
-  }
+  const toggleTurma = (id: number) => {
+    const current = [...selectedTurmaIds];
+    const index = current.indexOf(id);
+    if (index > -1) current.splice(index, 1);
+    else current.push(id);
+    setValue("turmaIds", current);
+  };
 
-  const filtered = materias.filter(
-    (m) =>
-      m.nome.toLowerCase().includes(search.toLowerCase()) ||
-      m.codigo.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = Array.isArray(materias) 
+    ? materias.filter(m =>
+        m.nome?.toLowerCase().includes(search.toLowerCase()) ||
+        m.codigo?.toLowerCase().includes(search.toLowerCase())
+      )
+    : [];
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold">Matérias</h2>
-          <p className="text-muted-foreground">
-            Cadastro base de disciplinas
-          </p>
-        </div>
+        <h2 className="text-2xl font-bold">Matérias</h2>
         <Button onClick={() => setDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nova Matéria
+          <Plus className="h-4 w-4 mr-2" /> Nova Matéria
         </Button>
       </div>
 
-      {/* Busca */}
       <Card>
         <CardContent className="p-4">
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              className="pl-10"
-              placeholder="Buscar por nome ou código"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+            <Input 
+              className="pl-10" 
+              placeholder="Buscar matéria..." 
+              value={search} 
+              onChange={e => setSearch(e.target.value)} 
             />
           </div>
         </CardContent>
       </Card>
 
-      {/* Tabela */}
       <Card>
-        <CardHeader>
-          <CardTitle>Lista de Matérias</CardTitle>
-        </CardHeader>
         <CardContent>
           {loading ? (
-            <p>Carregando...</p>
-          ) : filtered.length === 0 ? (
-            <p className="text-muted-foreground">Nenhuma matéria encontrada</p>
+            <p className="text-center py-4">Carregando...</p>
           ) : (
             <Table>
               <TableHeader>
@@ -197,43 +176,38 @@ export default function AdminMaterias() {
                   <TableHead>Código</TableHead>
                   <TableHead>Nome</TableHead>
                   <TableHead>Turmas</TableHead>
-                  <TableHead>Criação</TableHead>
-                  <TableHead />
+                  <TableHead className="w-[100px]" />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map((m) => (
                   <TableRow key={m.id}>
+                    <TableCell><Badge variant="secondary">{m.codigo}</Badge></TableCell>
+                    <TableCell className="font-medium">{m.nome}</TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{m.codigo}</Badge>
-                    </TableCell>
-                    <TableCell>{m.nome}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {m.turmas?.length || 0}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(m.createdAt).toLocaleDateString("pt-BR")}
+                      <div className="flex flex-wrap gap-1">
+                        {m.turmas && m.turmas.length > 0 ? (
+                          m.turmas.map(t => (
+                            <Badge key={t.turma.id} variant="outline" className="text-[10px]">
+                              {t.turma.codigo}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-xs text-muted-foreground italic">Sem turmas</span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
+                          <Button variant="ghost" size="sm"><MoreHorizontal className="h-4 w-4" /></Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleEdit(m)}>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Editar
+                          <DropdownMenuItem onClick={() => toast.info("Edição em breve")}>
+                            <Edit className="mr-2 h-4 w-4" /> Editar
                           </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleDelete(m.id)}
-                            className="text-red-600"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Excluir
+                          <DropdownMenuItem onClick={() => handleDelete(m.id)} className="text-red-600">
+                            <Trash2 className="mr-2 h-4 w-4" /> Excluir
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -246,66 +220,61 @@ export default function AdminMaterias() {
         </CardContent>
       </Card>
 
-      {/* Modal */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {editing ? "Editar Matéria" : "Nova Matéria"}
-            </DialogTitle>
-          </DialogHeader>
-
+      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if(!open) reset(); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Nova Matéria</DialogTitle></DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div>
-              <Label>Código</Label>
-              <Input {...register("codigo")} />
-              {errors.codigo && (
-                <p className="text-sm text-red-500">
-                  {errors.codigo.message}
-                </p>
-              )}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Código</Label>
+                <Input {...register("codigo")} placeholder="Ex: MAT01" />
+                {errors.codigo && <p className="text-[10px] text-red-500">{errors.codigo.message}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label>Nome</Label>
+                <Input {...register("nome")} placeholder="Ex: Cálculo I" />
+                {errors.nome && <p className="text-[10px] text-red-500">{errors.nome.message}</p>}
+              </div>
             </div>
 
-            <div>
-              <Label>Nome</Label>
-              <Input {...register("nome")} />
-              {errors.nome && (
-                <p className="text-sm text-red-500">
-                  {errors.nome.message}
-                </p>
-              )}
+            <div className="space-y-2">
+              <Label>Professor Responsável</Label>
+              <select {...register("professorId")} className="w-full border rounded-md p-2 text-sm bg-background">
+                <option value="">Selecione um professor...</option>
+                {professores.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+              {errors.professorId && <p className="text-[10px] text-red-500">{errors.professorId.message}</p>}
             </div>
 
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setDialogOpen(false)}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Salvando..." : "Salvar"}
-              </Button>
+            <div className="space-y-2">
+              <Label>Vincular Turmas</Label>
+              <ScrollArea className="h-32 border rounded-md p-2 bg-slate-50/50">
+                {turmasDisponiveis.length > 0 ? (
+                  turmasDisponiveis.map((turma) => (
+                    <div key={turma.id} className="flex items-center space-x-2 py-1">
+                      <input 
+                        type="checkbox"
+                        checked={selectedTurmaIds.includes(turma.id)}
+                        onChange={() => toggleTurma(turma.id)}
+                        className="h-4 w-4 rounded border-gray-300 accent-primary"
+                      />
+                      <span className="text-xs">{turma.codigo} - {turma.nome}</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-muted-foreground italic p-2 text-center">
+                    Nenhuma turma encontrada.
+                  </p>
+                )}
+              </ScrollArea>
             </div>
+
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? "Processando..." : "Cadastrar Matéria"}
+            </Button>
           </form>
         </DialogContent>
       </Dialog>
     </div>
   );
-  
 }
-[{
-	"resource": "/c:/Users/anaje/Desktop/reconhecimento-facial/pcexpress/projetoExpressPC/src/app/(main)/admin/materias/admin-materias.tsx",
-	"owner": "typescript",
-	"code": "2322",
-	"severity": 8,
-	"message": "Type '{ materia: Materia | null; onSuccess: () => void; }' is not assignable to type 'IntrinsicAttributes'.\n  Property 'materia' does not exist on type 'IntrinsicAttributes'.",
-	"source": "ts",
-	"startLineNumber": 207,
-	"startColumn": 13,
-	"endLineNumber": 207,
-	"endColumn": 20,
-	"modelVersionId": 6,
-	"origin": "extHost1"
-}]

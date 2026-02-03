@@ -4,12 +4,10 @@
 import { useFormStatus } from "react-dom";
 import React, { useState, useRef, useEffect } from "react";
 import { criarReserva, type State } from "../actions";
-import type { Turma, Materia } from "@/generated/prisma";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
 import {
   Select,
   SelectContent,
@@ -28,10 +26,20 @@ function SubmitButton() {
   );
 }
 
+// Interface ajustada para os dados formatados que vêm da page.tsx
 interface FormularioReservaProps {
-  turmas: (Turma & {
-    materias: Materia[];
-  })[];
+  turmas: {
+    id: number;
+    codigo: string;
+    nome: string;
+    semestre: number;
+    ano: number;
+    materias: {
+      id: number;
+      nome: string;
+      codigo: string;
+    }[];
+  }[];
 }
 
 export function FormularioReserva({ turmas }: FormularioReservaProps) {
@@ -41,13 +49,15 @@ export function FormularioReserva({ turmas }: FormularioReservaProps) {
 
   const [selectedTurmaId, setSelectedTurmaId] = useState<string>("");
 
+  // Busca a turma selecionada para filtrar as matérias em tempo real
   const selectedTurma = turmas.find(
     (turma) => turma.id === Number(selectedTurmaId)
   );
   const materiasDaTurma = selectedTurma?.materias ?? [];
 
+  // Efeito para limpar o formulário após sucesso
   useEffect(() => {
-    if (state.message && !state.errors) {
+    if (state.message && Object.keys(state.errors || {}).length === 0) {
       formRef.current?.reset();
       setSelectedTurmaId("");
     }
@@ -56,7 +66,7 @@ export function FormularioReserva({ turmas }: FormularioReservaProps) {
   return (
     <form ref={formRef} action={dispatch} className="space-y-4">
       {/* TURMA */}
-      <div>
+      <div className="space-y-2">
         <Label htmlFor="turmaId">Turma</Label>
         <Select
           name="turmaId"
@@ -70,95 +80,66 @@ export function FormularioReserva({ turmas }: FormularioReservaProps) {
             {turmas.length > 0 ? (
               turmas.map((turma) => (
                 <SelectItem key={turma.id} value={String(turma.id)}>
-                  {turma.nome} ({turma.codigo})
+                  {turma.codigo} - {turma.nome}
                 </SelectItem>
               ))
             ) : (
               <SelectItem value="0" disabled>
-                Nenhuma turma cadastrada
+                Nenhuma turma disponível
               </SelectItem>
             )}
           </SelectContent>
         </Select>
-
-        {/* Esta verificação de erro agora funciona
-            porque corrigimos o 'State' em actions.ts */}
         {state.errors?.turmaId && (
-          <p className="text-sm text-red-500 mt-1">
-            {state.errors.turmaId[0]}
-          </p>
+          <p className="text-xs text-red-500">{state.errors.turmaId[0]}</p>
         )}
       </div>
 
       {/* MATÉRIA */}
-      <div>
+      <div className="space-y-2">
         <Label htmlFor="materiaId">Matéria</Label>
-        <Select
-          name="materiaId"
-          disabled={materiasDaTurma.length === 0}
-        >
+        <Select name="materiaId" disabled={materiasDaTurma.length === 0}>
           <SelectTrigger>
-            <SelectValue placeholder="Selecione a matéria" />
+            <SelectValue placeholder={selectedTurmaId ? "Selecione a matéria" : "Selecione a turma primeiro"} />
           </SelectTrigger>
           <SelectContent>
-            {materiasDaTurma.length > 0 ? (
-              materiasDaTurma.map((materia) => (
-                <SelectItem key={materia.id} value={String(materia.id)}>
-                  {materia.nome}
-                </SelectItem>
-              ))
-            ) : (
-              <SelectItem value="0" disabled>
-                {selectedTurmaId
-                  ? "Nenhuma matéria para esta turma"
-                  : "Selecione uma turma primeiro"}
+            {materiasDaTurma.map((materia) => (
+              <SelectItem key={materia.id} value={String(materia.id)}>
+                {materia.nome} ({materia.codigo})
               </SelectItem>
-            )}
+            ))}
           </SelectContent>
         </Select>
-        
-        {/* ----- INÍCIO DA CORREÇÃO ----- */}
-        {/* Removemos a verificação '|| state.errors?.materia' */}
         {state.errors?.materiaId && (
-          <p className="text-sm text-red-500 mt-1">
-            {state.errors.materiaId[0]}
-          </p>
-        )}
-        {/* ----- FIM DA CORREÇÃO ----- */}
-
-      </div>
-
-      {/* DATA */}
-      <div>
-        <Label htmlFor="dataAula">Data</Label>
-        <Input
-          id="dataAula"
-          name="dataAula"
-          type="date"
-          defaultValue={new Date(Date.now() + 86400000)
-            .toISOString()
-            .split("T")[0]}
-        />
-        {state.errors?.dataAula && (
-          <p className="text-sm text-red-500 mt-1">
-            {state.errors.dataAula[0]}
-          </p>
+          <p className="text-xs text-red-500">{state.errors.materiaId[0]}</p>
         )}
       </div>
 
-      {/* HORÁRIO */}
-      <div>
-        <Label htmlFor="horario">Horário</Label>
-        <Input id="horario" name="horario" type="time" />
-        {state.errors?.horario && (
-          <p className="text-sm text-red-500 mt-1">
-            {state.errors.horario[0]}
-          </p>
-        )}
+      {/* GRID PARA DATA E HORÁRIO */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="dataAula">Data</Label>
+          <Input
+            id="dataAula"
+            name="dataAula"
+            type="date"
+            defaultValue={new Date(Date.now() + 86400000).toISOString().split("T")[0]}
+          />
+          {state.errors?.dataAula && (
+            <p className="text-xs text-red-500">{state.errors.dataAula[0]}</p>
+          )}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="horario">Horário</Label>
+          <Input id="horario" name="horario" type="time" />
+          {state.errors?.horario && (
+            <p className="text-xs text-red-500">{state.errors.horario[0]}</p>
+          )}
+        </div>
       </div>
 
       {/* TURNO */}
-      <div>
+      <div className="space-y-2">
         <Label htmlFor="turno">Turno</Label>
         <Select name="turno">
           <SelectTrigger>
@@ -170,15 +151,14 @@ export function FormularioReserva({ turmas }: FormularioReservaProps) {
             <SelectItem value="NOITE">Noite</SelectItem>
           </SelectContent>
         </Select>
-
         {state.errors?.turno && (
-          <p className="text-sm text-red-500 mt-1">{state.errors.turno[0]}</p>
+          <p className="text-xs text-red-500">{state.errors.turno[0]}</p>
         )}
       </div>
 
       {/* QUANTIDADE */}
-      <div>
-        <Label htmlFor="qtdNotebooks">Quantidade</Label>
+      <div className="space-y-2">
+        <Label htmlFor="qtdNotebooks">Quantidade de Notebooks</Label>
         <Input
           id="qtdNotebooks"
           name="qtdNotebooks"
@@ -187,20 +167,21 @@ export function FormularioReserva({ turmas }: FormularioReservaProps) {
           placeholder="Ex: 25"
         />
         {state.errors?.qtdNotebooks && (
-          <p className="text-sm text-red-500 mt-1">
-            {state.errors.qtdNotebooks[0]}
-          </p>
+          <p className="text-xs text-red-500">{state.errors.qtdNotebooks[0]}</p>
         )}
       </div>
 
-      {/* ERRO GERAL */}
+      {/* MENSAGENS DE FEEDBACK */}
       {state.errors?.geral && (
-        <p className="text-sm text-red-500">{state.errors.geral[0]}</p>
+        <div className="p-3 rounded-md bg-red-50 border border-red-200">
+           <p className="text-xs text-red-600 font-medium">{state.errors.geral[0]}</p>
+        </div>
       )}
 
-      {/* SUCESSO */}
-      {state.message && !state.errors && (
-        <p className="text-sm text-green-600">{state.message}</p>
+      {state.message && Object.keys(state.errors || {}).length === 0 && (
+        <div className="p-3 rounded-md bg-green-50 border border-green-200">
+           <p className="text-xs text-green-600 font-medium">{state.message}</p>
+        </div>
       )}
 
       <SubmitButton />

@@ -70,4 +70,15 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+  
+}
+export async function GET() {
+  try {
+    const turmas = await prisma.turma.findMany({
+      orderBy: { nome: 'asc' }
+    });
+    return NextResponse.json(turmas);
+  } catch (error) {
+    return NextResponse.json({ error: "Erro ao buscar turmas" }, { status: 500 });
+  }
 }

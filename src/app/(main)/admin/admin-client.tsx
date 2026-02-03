@@ -14,6 +14,7 @@ import {
 
 import AlunosView from "./alunos/alunos-view";
 import AdminFormTurma from "./turmas/admin-form-turma";
+import AdminMaterias from "./materias/admin-materias";
 
 type AdminView =
   | "dashboard"
@@ -35,7 +36,7 @@ export function AdminClient() {
           return <AdminFormTurma />;
 
         case "materias":
-          return <h2 className="text-xl font-bold">Gestão de Matérias</h2>;
+          return <AdminMaterias />; // Agora ele vai mostrar a lista e o botão "Nova Matéria"
 
         case "emprestimos":
           return <h2 className="text-xl font-bold">Gestão de Empréstimos</h2>;

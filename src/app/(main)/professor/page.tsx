@@ -1,5 +1,3 @@
-// app/(main)/professor/page.tsx
-
 import { getServerSession } from "@/lib/get-session";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
@@ -16,98 +14,79 @@ export default async function ProfessorPage() {
   const session = await getServerSession();
   const user = session?.user;
 
-  // Proteção básica
-  if (!user || !user.email) {
-    redirect("/sign-in");
-  }
+  if (!user || !user.email) redirect("/sign-in");
+  if (user.role !== "PROFESSOR") redirect("/unauthorized");
 
-  // Garantia de papel
-  if (user.role !== "PROFESSOR") {
-    redirect("/unauthorized");
-  }
-
-  // Busca do professor por email
   const professor = await prisma.user.findUnique({
     where: { email: user.email },
   });
 
   if (!professor) {
-    console.error(
-      `Usuário autenticado (${user.email}) não existe na tabela 'User'.`
-    );
-
     return (
       <main className="mx-auto w-full max-w-6xl px-4 py-12">
-        <h1 className="text-2xl font-semibold text-red-600">Erro</h1>
-        <p className="text-muted-foreground">
-          O seu usuário ({user.email}) não está cadastrado como professor no
-          sistema. Solicite assistência ao administrador.
-        </p>
+        <h1 className="text-xl font-bold text-red-600">Perfil não encontrado</h1>
+        <p className="text-muted-foreground">O e-mail {user.email} não está vinculado a um professor.</p>
       </main>
     );
   }
 
-  // --------------------------
-  // BUSCA DAS TURMAS (incluindo matérias) - CORRETO
-  // --------------------------
-  const turmas = await prisma.turma.findMany({
+  // Busca das Turmas formatadas
+  const turmasRaw = await prisma.turma.findMany({
     where: {
-      materias: {
-        some: {
-          professorId: professor.id,
-        },
-      },
+      materias: { some: { materia: { professorId: professor.id } } },
+    },
+    include: {
+      materias: { include: { materia: true } },
     },
     orderBy: { nome: "asc" },
-    include: {
-      materias: true, // garante que cada turma vem com suas matérias
-    },
   });
 
-  // --------------------------
-  // BUSCA DAS RESERVAS (incluindo turma e matérias) - CORRETO
-  // --------------------------
-  const reservas = await prisma.reserva.findMany({
+  const turmasFormatadas = turmasRaw.map((t) => ({
+    ...t,
+    materias: t.materias.map((tm) => tm.materia),
+  }));
+
+  // Busca das Reservas formatadas
+  const reservasRaw = await prisma.reserva.findMany({
     where: { professorId: professor.id },
     include: {
       turma: {
-        include: {
-          materias: true, // traz as matérias da turma da reserva
-        },
+        include: { materias: { include: { materia: true } } }
       },
-      materia: true, // <-- Correção que adicionaste
+      materia: true,
     },
     orderBy: { dataAula: "desc" },
   });
 
-  // --------------------------
-  // RENDERIZAÇÃO DA PÁGINA
-  // --------------------------
+  const reservasFormatadas = reservasRaw.map((r) => ({
+    ...r,
+    turma: {
+      ...r.turma,
+      materias: r.turma.materias.map((tm) => tm.materia),
+    },
+  }));
+
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-12">
-      <div className="space-y-6">
-        <div className="space-y-2">
-          <h1 className="text-2xl font-semibold">Painel do Professor</h1>
-          <p className="text-muted-foreground">Bem-vindo, {user.name}!</p>
+      <div className="space-y-8">
+        <div className="flex flex-col space-y-2 border-b pb-6">
+          <h1 className="text-3xl font-bold">Painel do Professor</h1>
+          <p className="text-muted-foreground">Olá, {user.name}.</p>
         </div>
 
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-          {/* Formulário */}
-          <div className="rounded-lg border bg-card p-6 text-card-foreground shadow-sm md:col-span-1">
-            <h2 className="text-lg font-semibold">Nova Reserva</h2>
-            <p className="mb-4 text-sm text-muted-foreground">
-              Solicite notebooks para sua aula.
-            </p>
-            <FormularioReserva turmas={turmas} />
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+          <div className="lg:col-span-4">
+            <div className="sticky top-6 rounded-xl border bg-card p-6 shadow-sm">
+              <h2 className="text-xl font-semibold mb-4">Nova Reserva</h2>
+              <FormularioReserva turmas={turmasFormatadas} />
+            </div>
           </div>
 
-          {/* Lista de reservas */}
-          <div className="rounded-lg border bg-card p-6 text-card-foreground shadow-sm md:col-span-2">
-            <h2 className="text-lg font-semibold">Minhas Reservas</h2>
-            
-            {/* ----- CORREÇÃO: Remove o 'as any' ----- */}
-            <ListaReservas reservas={reservas} />
-            
+          <div className="lg:col-span-8">
+            <div className="rounded-xl border bg-card p-6 shadow-sm">
+              <h2 className="text-xl font-semibold mb-6">Minhas Reservas</h2>
+              <ListaReservas reservas={reservasFormatadas} />
+            </div>
           </div>
         </div>
       </div>
