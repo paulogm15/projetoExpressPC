@@ -9,7 +9,6 @@ export async function GET(request: Request) {
   try {
     const notebooks = await prisma.notebook.findMany({
       where: {
-        // Se passar ?status=DISPONIVEL na URL, ele filtra automágico
         status: status ? (status as any) : undefined,
       },
       orderBy: {
@@ -38,13 +37,12 @@ export async function POST(request: Request) {
       data: {
         patrimonio,
         modelo,
-        status: "DISPONIVEL", // Status inicial padrão conforme seu Enum
+        status: "DISPONIVEL",
       },
     });
 
     return NextResponse.json(novoNotebook, { status: 201 });
   } catch (error: any) {
-    // Tratamento para patrimônio duplicado (Unique Constraint)
     if (error.code === 'P2002') {
       return NextResponse.json({ error: "Este patrimônio já está cadastrado" }, { status: 400 });
     }
@@ -52,15 +50,51 @@ export async function POST(request: Request) {
   }
 }
 
-// DELETE: Remove um notebook (opcional, via ID no corpo da requisição)
+// PUT: Atualiza um notebook existente (ADICIONADO PARA RESOLVER O ERRO 405)
+export async function PUT(request: Request) {
+  try {
+    const body = await request.json();
+    const { id, patrimonio, modelo, status } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: "ID do notebook é obrigatório" }, { status: 400 });
+    }
+
+    const notebookAtualizado = await prisma.notebook.update({
+      where: { id: Number(id) },
+      data: {
+        patrimonio,
+        modelo,
+        status: status ? (status as any) : undefined, // Permite atualizar o status se enviado
+      },
+    });
+
+    return NextResponse.json(notebookAtualizado);
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      return NextResponse.json({ error: "Este patrimônio já pertence a outro notebook" }, { status: 400 });
+    }
+    console.error("Erro ao atualizar notebook:", error);
+    return NextResponse.json({ error: "Erro ao atualizar notebook" }, { status: 500 });
+  }
+}
+
+// DELETE: Remove um notebook
 export async function DELETE(request: Request) {
   try {
     const { id } = await request.json();
+    
+    if (!id) {
+      return NextResponse.json({ error: "ID é obrigatório" }, { status: 400 });
+    }
+
     await prisma.notebook.delete({
       where: { id: Number(id) },
     });
+    
     return NextResponse.json({ message: "Notebook removido com sucesso" });
   } catch (error) {
+    console.error("Erro ao excluir notebook:", error);
     return NextResponse.json({ error: "Erro ao excluir notebook" }, { status: 500 });
   }
 }

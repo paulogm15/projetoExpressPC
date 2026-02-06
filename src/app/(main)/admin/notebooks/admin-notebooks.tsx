@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Laptop, Trash2, PlusCircle, Loader2 } from "lucide-react";
+import { Laptop, Trash2, PlusCircle, Loader2, Pencil, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import axios from "axios";
 
@@ -24,6 +24,9 @@ export default function AdminNotebooks() {
   const [modelo, setModelo] = useState("");
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  
+  // ESTADO DE EDIÇÃO
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   // Carregar notebooks do banco
   async function loadNotebooks() {
@@ -42,19 +45,41 @@ export default function AdminNotebooks() {
     loadNotebooks();
   }, []);
 
-  // Cadastrar novo notebook
-  async function handleCreate(e: React.FormEvent) {
+  // Preencher formulário para edição
+  const handleEditClick = (nb: Notebook) => {
+    setEditingId(nb.id);
+    setPatrimonio(nb.patrimonio);
+    setModelo(nb.modelo);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Cancelar edição
+  const cancelEdit = () => {
+    setEditingId(null);
+    setPatrimonio("");
+    setModelo("");
+  };
+
+  // Cadastrar ou Atualizar notebook
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
 
     try {
-      await axios.post("/api/notebooks", { patrimonio, modelo });
-      toast.success("Notebook cadastrado com sucesso!");
-      setPatrimonio("");
-      setModelo("");
-      loadNotebooks(); // Recarrega a lista
+      if (editingId) {
+        // Lógica de Atualização (PUT)
+        await axios.put("/api/notebooks", { id: editingId, patrimonio, modelo });
+        toast.success("Notebook atualizado com sucesso!");
+      } else {
+        // Lógica de Criação (POST)
+        await axios.post("/api/notebooks", { patrimonio, modelo });
+        toast.success("Notebook cadastrado com sucesso!");
+      }
+      
+      cancelEdit();
+      loadNotebooks(); 
     } catch (error: any) {
-      toast.error(error.response?.data?.error || "Erro ao cadastrar");
+      toast.error(error.response?.data?.error || "Erro ao processar solicitação");
     } finally {
       setLoading(false);
     }
@@ -67,6 +92,7 @@ export default function AdminNotebooks() {
     try {
       await axios.delete("/api/notebooks", { data: { id } });
       toast.success("Notebook removido");
+      if (editingId === id) cancelEdit();
       loadNotebooks();
     } catch (error) {
       toast.error("Erro ao excluir");
@@ -91,15 +117,16 @@ export default function AdminNotebooks() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* FORMULÁRIO DE CADASTRO */}
-        <Card className="md:col-span-1 h-fit">
+        {/* FORMULÁRIO (DINÂMICO PARA CADASTRO OU EDIÇÃO) */}
+        <Card className={`md:col-span-1 h-fit border-2 transition-colors ${editingId ? "border-blue-500 bg-blue-50/10" : ""}`}>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <PlusCircle className="h-5 w-5" /> Novo Equipamento
+              {editingId ? <Pencil className="h-5 w-5 text-blue-500" /> : <PlusCircle className="h-5 w-5" />}
+              {editingId ? "Editar Equipamento" : "Novo Equipamento"}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleCreate} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="patrimonio">Patrimônio</Label>
                 <Input
@@ -120,9 +147,17 @@ export default function AdminNotebooks() {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Cadastrar"}
-              </Button>
+              
+              <div className="flex gap-2">
+                {editingId && (
+                  <Button type="button" variant="outline" className="flex-1" onClick={cancelEdit}>
+                    <Undo2 className="mr-2 h-4 w-4" /> Cancelar
+                  </Button>
+                )}
+                <Button type="submit" className="flex-[2]" disabled={loading}>
+                  {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (editingId ? "Salvar Alterações" : "Cadastrar")}
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>
@@ -156,19 +191,29 @@ export default function AdminNotebooks() {
                     </TableRow>
                   ) : (
                     notebooks.map((nb) => (
-                      <TableRow key={nb.id}>
+                      <TableRow key={nb.id} className={editingId === nb.id ? "bg-blue-50/50" : ""}>
                         <TableCell className="font-medium">{nb.patrimonio}</TableCell>
                         <TableCell>{nb.modelo}</TableCell>
                         <TableCell>{getStatusBadge(nb.status)}</TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(nb.id)}
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditClick(nb)}
+                              className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(nb.id)}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
