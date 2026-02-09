@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
@@ -63,4 +64,105 @@ export async function DELETE(request: Request) {
   } catch (error) {
     return NextResponse.json({ error: "Erro ao excluir notebook" }, { status: 500 });
   }
+=======
+import { NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+
+// GET: Lista todos os notebooks ou filtra por status
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const status = searchParams.get("status");
+
+  try {
+    const notebooks = await prisma.notebook.findMany({
+      where: {
+        status: status ? (status as any) : undefined,
+      },
+      orderBy: {
+        patrimonio: "asc",
+      },
+    });
+
+    return NextResponse.json(notebooks);
+  } catch (error) {
+    console.error("Erro ao buscar notebooks:", error);
+    return NextResponse.json({ error: "Erro interno ao buscar notebooks" }, { status: 500 });
+  }
+}
+
+// POST: Cadastra um novo notebook
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { patrimonio, modelo } = body;
+
+    if (!patrimonio || !modelo) {
+      return NextResponse.json({ error: "Patrimônio e modelo são obrigatórios" }, { status: 400 });
+    }
+
+    const novoNotebook = await prisma.notebook.create({
+      data: {
+        patrimonio,
+        modelo,
+        status: "DISPONIVEL",
+      },
+    });
+
+    return NextResponse.json(novoNotebook, { status: 201 });
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      return NextResponse.json({ error: "Este patrimônio já está cadastrado" }, { status: 400 });
+    }
+    return NextResponse.json({ error: "Erro ao criar notebook" }, { status: 500 });
+  }
+}
+
+// PUT: Atualiza um notebook existente (ADICIONADO PARA RESOLVER O ERRO 405)
+export async function PUT(request: Request) {
+  try {
+    const body = await request.json();
+    const { id, patrimonio, modelo, status } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: "ID do notebook é obrigatório" }, { status: 400 });
+    }
+
+    const notebookAtualizado = await prisma.notebook.update({
+      where: { id: Number(id) },
+      data: {
+        patrimonio,
+        modelo,
+        status: status ? (status as any) : undefined, // Permite atualizar o status se enviado
+      },
+    });
+
+    return NextResponse.json(notebookAtualizado);
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      return NextResponse.json({ error: "Este patrimônio já pertence a outro notebook" }, { status: 400 });
+    }
+    console.error("Erro ao atualizar notebook:", error);
+    return NextResponse.json({ error: "Erro ao atualizar notebook" }, { status: 500 });
+  }
+}
+
+// DELETE: Remove um notebook
+export async function DELETE(request: Request) {
+  try {
+    const { id } = await request.json();
+    
+    if (!id) {
+      return NextResponse.json({ error: "ID é obrigatório" }, { status: 400 });
+    }
+
+    await prisma.notebook.delete({
+      where: { id: Number(id) },
+    });
+    
+    return NextResponse.json({ message: "Notebook removido com sucesso" });
+  } catch (error) {
+    console.error("Erro ao excluir notebook:", error);
+    return NextResponse.json({ error: "Erro ao excluir notebook" }, { status: 500 });
+  }
+>>>>>>> origin/main
 }

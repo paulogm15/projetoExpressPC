@@ -13,7 +13,10 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
+<<<<<<< HEAD
     "baseUrl": ".",
+=======
+>>>>>>> origin/main
     "plugins": [
       {
         "name": "next"
