@@ -85,14 +85,26 @@ model Aluno {
   id          Int          @id @default(autoincrement())
   nome        String
   matricula   String       @unique
+  cpf         String       @unique @db.VarChar(14)
   foto        Bytes
   embedding   Float[]
   ativo       Boolean      @default(true)
   createdAt   DateTime     @default(now())
 
   emprestimos Emprestimo[]
+  materias    AlunoMateria[]  // ← nova relação
 
   @@index([ativo])
+}
+
+model AlunoMateria {
+  alunoId   Int
+  materiaId Int
+
+  aluno     Aluno   @relation(fields: [alunoId], references: [id])
+  materia   Materia @relation(fields: [materiaId], references: [id])
+
+  @@id([alunoId, materiaId])
 }
 
 model Turma {
@@ -127,6 +139,7 @@ model Materia {
 
   turmas       TurmaMateria[]   // ← vínculo indireto
   reservas     Reserva[]
+  alunos       AlunoMateria[]
 
   createdAt    DateTime @default(now())
 }

@@ -14,6 +14,7 @@ export async function GET() {
             id: true,
             nome: true,
             matricula: true,
+            cpf: true,
           },
         },
         notebook: {
@@ -73,6 +74,7 @@ export async function POST(req: Request) {
   try {
     const { alunoId, patrimonio } = await req.json();
 
+    /* ---------- validação básica ---------- */
     if (!alunoId || !patrimonio) {
       return NextResponse.json(
         { error: "Dados obrigatórios não informados" },
@@ -80,7 +82,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Buscar notebook
+    /* ---------- buscar notebook ---------- */
     const notebook = await prisma.notebook.findUnique({
       where: { patrimonio },
     });
@@ -92,61 +94,106 @@ export async function POST(req: Request) {
       );
     }
 
-    // Validar disponibilidade
-    if (notebook.status !== "DISPONIVEL") {
+    /* ---------- REGRA: Validar se o notebook já possui empréstimo ativo ---------- */
+    const emprestimoDuplicado = await prisma.emprestimo.findFirst({
+      where: {
+        notebookId: notebook.id,
+        status: "ATIVO",
+      },
+    });
+
+    if (notebook.status !== "DISPONIVEL" || emprestimoDuplicado) {
       return NextResponse.json(
-        { error: "Notebook não está disponível para empréstimo" },
+        { error: "Este notebook já está em uso e não foi devolvido" },
         { status: 400 }
       );
     }
 
-    // Buscar reserva ATIVA do dia
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
+    /* ---------- janela do dia UTC ---------- */
+    const agora = new Date();
+    const hoje = new Date(Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth(), agora.getUTCDate(), 0, 0, 0));
+    const amanha = new Date(Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth(), agora.getUTCDate(), 23, 59, 59));
 
-    const amanha = new Date(hoje);
-    amanha.setDate(amanha.getDate() + 1);
-
+    /* ---------- buscar reserva válida para o aluno ---------- */
     const reserva = await prisma.reserva.findFirst({
       where: {
         status: "ATIVA",
         dataAula: {
           gte: hoje,
-          lt: amanha,
+          lte: amanha,
         },
+        materia: {
+          alunos: {
+            some: {
+              alunoId: Number(alunoId),
+            },
+          },
+        },
+      },
+      include: {
+        _count: {
+          select: {
+            emprestimos: {
+              where: { status: "ATIVO" }
+            }
+          }
+        }
       },
       orderBy: { createdAt: "desc" },
     });
 
     if (!reserva) {
       return NextResponse.json(
-        { error: "Nenhuma reserva ativa para hoje" },
+        { error: "Aluno não possui reserva válida para hoje" },
         { status: 400 }
       );
     }
 
-    // Criar empréstimo
-    const emprestimo = await prisma.emprestimo.create({
-      data: {
-        alunoId,
-        notebookId: notebook.id,
-        reservaId: reserva.id,
-      },
+    /* ---------- REGRA: Validar cota de equipamentos da reserva ---------- */
+    // Verifica se a quantidade de notebooks já retirados atingiu o limite da reserva
+    if (reserva._count.emprestimos >= reserva.qtdNotebooks) {
+      return NextResponse.json(
+        { error: `Limite de equipamentos (${reserva.qtdNotebooks}) atingido para esta reserva` },
+        { status: 400 }
+      );
+    }
+
+    /* ---------- transação: criar empréstimo + atualizar notebook ---------- */
+    const novoEmprestimo = await prisma.$transaction(async (tx) => {
+      // 1. Cria o registro de empréstimo
+      const emp = await tx.emprestimo.create({
+        data: {
+          alunoId: Number(alunoId),
+          notebookId: notebook.id,
+          reservaId: reserva.id,
+        },
+        include: {
+          aluno: {
+            select: { id: true, nome: true, matricula: true, cpf: true },
+          },
+          notebook: true,
+          reserva: {
+            include: { professor: true, turma: true, materia: true },
+          },
+        },
+      });
+
+      // 2. Atualiza o status do notebook para EM_USO
+      await tx.notebook.update({
+        where: { id: notebook.id },
+        data: { status: "EM_USO" },
+      });
+
+      return emp;
     });
 
-    // Atualizar status do notebook
-    await prisma.notebook.update({
-      where: { id: notebook.id },
-      data: { status: "EM_USO" },
-    });
+    console.log("✅ Empréstimo criado com sucesso:", novoEmprestimo.id);
 
-    console.log("✅ Empréstimo criado:", emprestimo.id);
-
-    return NextResponse.json(emprestimo, { status: 201 });
+    return NextResponse.json(novoEmprestimo, { status: 201 });
   } catch (error) {
-    console.error("[POST_EMPRESTIMO]", error);
+    console.error("[POST_EMPRESTIMO_FATAL]", error);
     return NextResponse.json(
-      { error: "Erro ao criar empréstimo" },
+      { error: "Erro interno ao processar empréstimo" },
       { status: 500 }
     );
   }
