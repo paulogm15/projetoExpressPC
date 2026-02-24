@@ -3,11 +3,7 @@ import { UserDropdown } from "@/app/components/user-dropdown";
 import { getServerSession } from "@/lib/get-session";
 import Link from "next/link";
 
-<<<<<<< HEAD
 export async function Navbar({ backHref, backLabel }: { backHref?: string; backLabel?: string } = {}) {
-=======
-export async function Navbar() {
->>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
   const session = await getServerSession();
   const user = session?.user;
 
@@ -23,7 +19,6 @@ export async function Navbar() {
           ExpressPc
         </Link>
         <div className="flex items-center gap-2">
-<<<<<<< HEAD
           {backHref && (
             <Link
               href={backHref}
@@ -32,8 +27,6 @@ export async function Navbar() {
               ← {backLabel || "Voltar"}
             </Link>
           )}
-=======
->>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
           <ModeToggle />
           <UserDropdown user={user} />
         </div>
