@@ -5,8 +5,14 @@ generator client {
 }
 
 datasource db {
+<<<<<<< HEAD
   provider     = "postgresql"
   url          = env("DATABASE_URL")
+=======
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // Adicione estas linhas:
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
   relationMode = "prisma"
 }
 
@@ -66,15 +72,22 @@ model User {
   emailVerified Boolean    @default(false)
   image         String?
   role          Role       @default(PROFESSOR)
+<<<<<<< HEAD
 
   status        UserStatus @default(ATIVO)
   logs          Log[]
 
+=======
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
   reservas      Reserva[]
+<<<<<<< HEAD
   materias      Materia[]  @relation("ProfessorMaterias")
+=======
+  materias      Materia[]   @relation("ProfessorMaterias")
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
   sessions      Session[]
   accounts      Account[]
 
@@ -82,6 +95,7 @@ model User {
   @@map("user")
 }
 
+<<<<<<< HEAD
 /* ---------------------- LOG DE AÇÕES ------------------------ */
 
 model Log {
@@ -95,24 +109,33 @@ model Log {
   @@map("log")
 }
 
+=======
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
 /* ---------------------- ACADÊMICO ------------------------ */
 
 model Aluno {
   id          Int          @id @default(autoincrement())
   nome        String
   matricula   String       @unique
+<<<<<<< HEAD
   cpf         String       @unique @db.VarChar(14)
+=======
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
   foto        Bytes
   embedding   Float[]
   ativo       Boolean      @default(true)
   createdAt   DateTime     @default(now())
 
   emprestimos Emprestimo[]
+<<<<<<< HEAD
   materias    AlunoMateria[]
+=======
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
 
   @@index([ativo])
 }
 
+<<<<<<< HEAD
 model AlunoMateria {
   alunoId   Int
   materiaId Int
@@ -123,6 +146,8 @@ model AlunoMateria {
   @@id([alunoId, materiaId])
 }
 
+=======
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
 model Turma {
   id        Int      @id @default(autoincrement())
   codigo    String   @unique
@@ -130,10 +155,18 @@ model Turma {
   semestre  Int
   ano       Int
 
+<<<<<<< HEAD
   materias  TurmaMateria[]
   reservas  Reserva[]
 }
 
+=======
+  materias  TurmaMateria[]   // ← vínculo indireto
+  reservas  Reserva[]
+}
+
+
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
 model TurmaMateria {
   turmaId   Int
   materiaId Int
@@ -152,13 +185,19 @@ model Materia {
   professorId  String
   professor    User     @relation("ProfessorMaterias", fields: [professorId], references: [id])
 
+<<<<<<< HEAD
   turmas       TurmaMateria[]
   reservas     Reserva[]
   alunos       AlunoMateria[]
+=======
+  turmas       TurmaMateria[]   // ← vínculo indireto
+  reservas     Reserva[]
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
 
   createdAt    DateTime @default(now())
 }
 
+<<<<<<< HEAD
 /* ---------------------- NOTEBOOK ------------------------ */
 
 model Notebook {
@@ -172,6 +211,18 @@ model Notebook {
   dataInicioManutencao DateTime?
   dataFimManutencao    DateTime?
 
+=======
+
+
+/* ---------------------- NOTEBOOK ------------------------ */
+
+model Notebook {
+  id          Int          @id @default(autoincrement())
+  patrimonio  String       @unique
+  modelo      String
+  status      Status       @default(DISPONIVEL)
+  createdAt   DateTime     @default(now())
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
   emprestimos Emprestimo[]
 }
 
@@ -242,9 +293,12 @@ enum Turno {
   MANHA
   TARDE
   NOITE
+<<<<<<< HEAD
 }
 
 enum UserStatus {
   ATIVO
   INATIVO
+=======
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
 }

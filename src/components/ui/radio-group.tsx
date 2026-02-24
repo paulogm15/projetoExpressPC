@@ -1,8 +1,18 @@
 "use client"
 
 import * as React from "react"
+<<<<<<< HEAD
 import { CircleIcon } from "lucide-react"
 import { RadioGroup as RadioGroupPrimitive } from "radix-ui"
+=======
+<<<<<<< HEAD
+import { CircleIcon } from "lucide-react"
+import { RadioGroup as RadioGroupPrimitive } from "radix-ui"
+=======
+import * as RadioGroupPrimitive from "@radix-ui/react-radio-group"
+import { CircleIcon } from "lucide-react"
+>>>>>>> origin/main
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
 
 import { cn } from "@/lib/utils"
 

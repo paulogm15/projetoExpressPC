@@ -7,12 +7,24 @@
     "strict": true,
     "noEmit": true,
     "esModuleInterop": true,
+<<<<<<< HEAD
     "module": "esnext",              // Mudou de "CommonJS" para "esnext"
     "moduleResolution": "bundler",    // Mudou de "node" para "bundler"
+=======
+    "module": "CommonJS",
+    "moduleResolution": "node",
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+    "baseUrl": ".",
+=======
+>>>>>>> origin/main
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
     "plugins": [
       {
         "name": "next"

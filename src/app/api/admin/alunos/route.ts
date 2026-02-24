@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
@@ -6,6 +10,7 @@ import { NextResponse } from "next/server";
 ========================= */
 export async function GET() {
   try {
+<<<<<<< HEAD
     // admin/alunos/route.ts
     const hoje = new Date();
     hoje.setUTCHours(0, 0, 0, 0); // Força o início do dia em UTC
@@ -37,6 +42,16 @@ export async function GET() {
             },
           },
         },
+=======
+    const alunos = await prisma.aluno.findMany({
+      orderBy: { nome: "asc" },
+      select: {
+        id: true,
+        nome: true,
+        matricula: true,
+        ativo: true,
+        createdAt: true,
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
       },
     });
 
@@ -55,16 +70,24 @@ export async function GET() {
 ========================= */
 export async function POST(req: Request) {
   try {
+<<<<<<< HEAD
     const { nome, matricula, cpf, fotoBase64, materiasIds } =
       await req.json();
 
     if (!nome || !matricula || !cpf || !fotoBase64) {
+=======
+    const { nome, matricula, fotoBase64 } = await req.json();
+
+    // Validação básica
+    if (!nome || !matricula || !fotoBase64) {
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
       return NextResponse.json(
         { error: "Dados obrigatórios não informados" },
         { status: 400 }
       );
     }
 
+<<<<<<< HEAD
     /* =========================
        GERAR EMBEDDING (Python)
     ========================= */
@@ -101,18 +124,25 @@ export async function POST(req: Request) {
     /* =========================
        CONVERTER FOTO → BUFFER
     ========================= */
+=======
+    // Converte base64 para Buffer
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
     const fotoBuffer = Buffer.from(
       fotoBase64.replace(/^data:image\/\w+;base64,/, ""),
       "base64"
     );
 
+<<<<<<< HEAD
     /* =========================
        CRIAR ALUNO + RELAÇÕES
     ========================= */
+=======
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
     const aluno = await prisma.aluno.create({
       data: {
         nome,
         matricula,
+<<<<<<< HEAD
         cpf,
         foto: fotoBuffer,
         embedding,
@@ -128,12 +158,17 @@ export async function POST(req: Request) {
         materias: {
           include: { materia: true },
         },
+=======
+        foto: fotoBuffer,
+        embedding: [], // pronto para reconhecimento futuro
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
       },
     });
 
     return NextResponse.json(aluno, { status: 201 });
 
   } catch (error: any) {
+<<<<<<< HEAD
     console.error("[POST_ALUNO_FATAL]", error);
 
     if (error.code === "P2002") {
@@ -155,18 +190,60 @@ export async function POST(req: Request) {
 
       return NextResponse.json(
         { error: "Registro duplicado." },
+=======
+    console.error("[POST_ALUNO]", error);
+
+    // Matrícula duplicada
+    if (error.code === "P2002") {
+      return NextResponse.json(
+        { error: "Matrícula já cadastrada" },
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
         { status: 409 }
       );
     }
 
     return NextResponse.json(
+<<<<<<< HEAD
       { error: "Erro interno ao processar cadastro" },
+=======
+      { error: "Erro ao cadastrar aluno" },
+      { status: 500 }
+    );
+  }
+}
+=======
+import prisma from "@/lib/prisma";
+import { NextResponse } from "next/server";
+
+/* =========================
+   LISTAR ALUNOS
+========================= */
+export async function GET() {
+  try {
+    const alunos = await prisma.aluno.findMany({
+      orderBy: { nome: "asc" },
+      select: {
+        id: true,
+        nome: true,
+        matricula: true,
+        ativo: true,
+        createdAt: true,
+      },
+    });
+
+    return NextResponse.json(alunos);
+  } catch (error) {
+    console.error("[GET_ALUNOS]", error);
+    return NextResponse.json(
+      { error: "Erro ao buscar alunos" },
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
       { status: 500 }
     );
   }
 }
 
 /* =========================
+<<<<<<< HEAD
    DELETAR ALUNO
 ========================= */
 export async function DELETE(req: Request) {
@@ -177,10 +254,23 @@ export async function DELETE(req: Request) {
     if (!idParam) {
       return NextResponse.json(
         { error: "ID do aluno não informado" },
+=======
+   CADASTRAR ALUNO
+========================= */
+export async function POST(req: Request) {
+  try {
+    const { nome, matricula, fotoBase64 } = await req.json();
+
+    // Validação básica
+    if (!nome || !matricula || !fotoBase64) {
+      return NextResponse.json(
+        { error: "Dados obrigatórios não informados" },
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
         { status: 400 }
       );
     }
 
+<<<<<<< HEAD
     const id = Number(idParam);
 
     if (isNaN(id)) {
@@ -219,3 +309,40 @@ export async function DELETE(req: Request) {
     );
   }
 }
+=======
+    // Converte base64 para Buffer
+    const fotoBuffer = Buffer.from(
+      fotoBase64.replace(/^data:image\/\w+;base64,/, ""),
+      "base64"
+    );
+
+    const aluno = await prisma.aluno.create({
+      data: {
+        nome,
+        matricula,
+        foto: fotoBuffer,
+        embedding: [], // pronto para reconhecimento futuro
+      },
+    });
+
+    return NextResponse.json(aluno, { status: 201 });
+
+  } catch (error: any) {
+    console.error("[POST_ALUNO]", error);
+
+    // Matrícula duplicada
+    if (error.code === "P2002") {
+      return NextResponse.json(
+        { error: "Matrícula já cadastrada" },
+        { status: 409 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: "Erro ao cadastrar aluno" },
+      { status: 500 }
+    );
+  }
+}
+>>>>>>> origin/main
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a

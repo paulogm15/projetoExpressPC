@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { NextResponse } from "next/server"
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
@@ -18,10 +19,27 @@ export async function GET(request: Request) {
   try {
     const users = await prisma.user.findMany({
       where: { role: role ? (role as any) : undefined },
+=======
+<<<<<<< HEAD
+import { NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const role = searchParams.get("role");
+
+  try {
+    const users = await prisma.user.findMany({
+      where: {
+        // Se houver um role na URL, filtra. Caso contrário, traz todos.
+        role: role ? (role as any) : undefined,
+      },
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
       select: {
         id: true,
         name: true,
         email: true,
+<<<<<<< HEAD
         role: true,
         status: true,
         createdAt: true,
@@ -96,4 +114,48 @@ export async function POST(request: Request) {
     console.error("Erro ao criar usuário:", error)
     return NextResponse.json({ error: "Erro ao criar usuário" }, { status: 500 })
   }
+=======
+      },
+      orderBy: {
+        name: "asc",
+      },
+    });
+
+    return NextResponse.json(users);
+  } catch (error) {
+    console.error("Erro ao buscar usuários:", error);
+    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+  }
+=======
+// src/app/api/users/route.ts
+import { NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const role = searchParams.get("role");
+
+  try {
+    const users = await prisma.user.findMany({
+      where: {
+        // Se houver um role na URL, filtra. Caso contrário, traz todos.
+        role: role ? (role as any) : undefined,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+      },
+      orderBy: {
+        name: "asc",
+      },
+    });
+
+    return NextResponse.json(users);
+  } catch (error) {
+    console.error("Erro ao buscar usuários:", error);
+    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+  }
+>>>>>>> origin/main
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
 }

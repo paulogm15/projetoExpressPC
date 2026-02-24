@@ -1,3 +1,93 @@
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+"use client";
+
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import CameraCapture from "./components/CameraCapture";
+
+type Props = {
+  onSuccess: () => void;
+};
+
+export default function AlunoForm({ onSuccess }: Props) {
+  const [nome, setNome] = useState<string>("");
+  const [matricula, setMatricula] = useState<string>("");
+  const [fotoBase64, setFotoBase64] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+
+  const handleSubmit = async () => {
+    if (!nome || !matricula || !fotoBase64) {
+      alert("Preencha todos os campos e capture a foto.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch("/api/admin/alunos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nome,
+          matricula,
+          fotoBase64,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Erro ao cadastrar aluno");
+      }
+
+      setNome("");
+      setMatricula("");
+      setFotoBase64("");
+      onSuccess();
+    } catch (error) {
+      alert("Erro ao cadastrar aluno");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardContent className="p-6 space-y-4">
+        <Input
+          placeholder="Nome do aluno"
+          value={nome}
+          onChange={(e) => setNome(e.target.value)}
+        />
+
+        <Input
+          placeholder="Matrícula"
+          value={matricula}
+          onChange={(e) => setMatricula(e.target.value)}
+        />
+
+        {/* Câmera */}
+        <CameraCapture
+          onCapture={(foto: string) => setFotoBase64(foto)}
+        />
+
+        {fotoBase64 && (
+          <p className="text-sm text-green-600">
+            Foto capturada com sucesso ✔
+          </p>
+        )}
+
+        <Button onClick={handleSubmit} disabled={loading}>
+          {loading ? "Salvando..." : "Cadastrar Aluno"}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+=======
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
 "use client";
 
 import { useState, useEffect } from "react";
@@ -5,8 +95,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import CameraCapture from "./components/CameraCapture";
+<<<<<<< HEAD
 import { Aluno } from "./types/aluno";
 import { Materia } from "./types/aluno"; // Importe o tipo Materia do arquivo de tipos
+=======
+
+type Aluno = {
+  id: number;
+  nome: string;
+  matricula: string;
+};
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
 
 type Props = {
   onSuccess: () => void;
@@ -14,6 +113,7 @@ type Props = {
 };
 
 export default function AlunoForm({ onSuccess, alunoInicial }: Props) {
+<<<<<<< HEAD
   const [nome, setNome] = useState("");
   const [matricula, setMatricula] = useState("");
   const [cpf, setCpf] = useState("");
@@ -44,10 +144,21 @@ export default function AlunoForm({ onSuccess, alunoInicial }: Props) {
   /* =========================
      PREENCHER MODO EDIÇÃO
   ========================= */
+=======
+  const [nome, setNome] = useState<string>("");
+  const [matricula, setMatricula] = useState<string>("");
+  
+  // CORREÇÃO: Permitir que o estado seja string ou null
+  const [fotoBase64, setFotoBase64] = useState<string | null>(""); 
+  
+  const [loading, setLoading] = useState<boolean>(false);
+
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
   useEffect(() => {
     if (alunoInicial) {
       setNome(alunoInicial.nome);
       setMatricula(alunoInicial.matricula);
+<<<<<<< HEAD
       setCpf(alunoInicial.cpf ?? "");
 
       setMateriasSelecionadas(
@@ -81,10 +192,23 @@ export default function AlunoForm({ onSuccess, alunoInicial }: Props) {
   ========================= */
   const handleSubmit = async () => {
     if (!nome || !matricula || !cpf) {
+=======
+      setFotoBase64(""); 
+    } else {
+      setNome("");
+      setMatricula("");
+      setFotoBase64("");
+    }
+  }, [alunoInicial]);
+
+  const handleSubmit = async () => {
+    if (!nome || !matricula || (!alunoInicial && !fotoBase64)) {
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
       alert("Preencha os campos obrigatórios.");
       return;
     }
 
+<<<<<<< HEAD
     if (!alunoInicial && !fotoBase64) {
       alert("Capture a foto do aluno.");
       return;
@@ -97,11 +221,22 @@ export default function AlunoForm({ onSuccess, alunoInicial }: Props) {
     try {
       const response = await fetch("/api/admin/alunos", {
         method,
+=======
+    setLoading(true);
+
+    const url = "/api/admin/alunos";
+    const method = alunoInicial ? "PUT" : "POST";
+
+    try {
+      const response = await fetch(url, {
+        method: method,
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: alunoInicial?.id,
           nome,
           matricula,
+<<<<<<< HEAD
           cpf,
           fotoBase64: fotoBase64 || undefined,
           materiasIds: materiasSelecionadas,
@@ -120,11 +255,26 @@ export default function AlunoForm({ onSuccess, alunoInicial }: Props) {
     } catch (error) {
       console.error(error);
       alert("Erro ao salvar aluno.");
+=======
+          fotoBase64: fotoBase64 || undefined,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Erro na requisição");
+
+      setNome("");
+      setMatricula("");
+      setFotoBase64("");
+      onSuccess();
+    } catch (error) {
+      alert("Ocorreu um erro ao salvar o aluno.");
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
     } finally {
       setLoading(false);
     }
   };
 
+<<<<<<< HEAD
   /* =========================
      DELETE
   ========================= */
@@ -164,6 +314,13 @@ export default function AlunoForm({ onSuccess, alunoInicial }: Props) {
         </CardTitle>
       </CardHeader>
 
+=======
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{alunoInicial ? `Editando: ${alunoInicial.nome}` : "Cadastrar Aluno"}</CardTitle>
+      </CardHeader>
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
       <CardContent className="space-y-4">
         <Input
           placeholder="Nome do aluno"
@@ -177,6 +334,7 @@ export default function AlunoForm({ onSuccess, alunoInicial }: Props) {
           onChange={(e) => setMatricula(e.target.value)}
         />
 
+<<<<<<< HEAD
         <Input
           placeholder="CPF"
           value={cpf}
@@ -242,9 +400,32 @@ export default function AlunoForm({ onSuccess, alunoInicial }: Props) {
                 Excluir
               </Button>
             </>
+=======
+        {/* Agora o TypeScript aceita que 'foto' seja string | null */}
+        <CameraCapture onCapture={(foto) => setFotoBase64(foto)} />
+
+        {fotoBase64 && (
+          <p className="text-sm text-green-600 font-medium">Foto capturada ✔</p>
+        )}
+
+        <div className="flex gap-2">
+          <Button onClick={handleSubmit} disabled={loading} className="flex-1">
+            {loading ? "Salvando..." : alunoInicial ? "Atualizar Informações" : "Cadastrar Aluno"}
+          </Button>
+          
+          {alunoInicial && (
+            <Button variant="ghost" onClick={() => onSuccess()}>
+              Cancelar
+            </Button>
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
           )}
         </div>
       </CardContent>
     </Card>
   );
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> origin/main
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a

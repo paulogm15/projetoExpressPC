@@ -1,3 +1,11 @@
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+// app/(main)/dashboard/page.tsx
+
+>>>>>>> origin/main
+>>>>>>> d9ee6f5df357af25cf887058b7dcc15312449d0a
 import { getServerSession } from "@/lib/get-session";
 // IMPORTANTE: Adicione "redirect"
 import { redirect, unauthorized } from "next/navigation";
